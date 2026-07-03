@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+js/config.js
+/config/config.js
+.env
+.DS_Store
