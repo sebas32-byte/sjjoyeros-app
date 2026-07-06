@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useCart } from '../context/CartContext.jsx';
 import { useProduct, getRelatedProducts } from '../hooks/useProducts.js';
+import { createProductWhatsAppUrl } from '../config/business.js';
 
 function formatCurrency(value) {
   return value ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value) : 'Precio disponible';
@@ -29,9 +30,7 @@ export default function ProductPage({ id }) {
 
   const whatsappUrl = useMemo(() => {
     if (!product) return '#';
-    const message = `Hola, estoy interesado en el producto ${product.name} (${product.reference || product.sku || product.id}) con precio ${formatCurrency(product.price)}. Aquí está el enlace: ${window.location.origin}/product/${product.id}`;
-    const number = '573001234567';
-    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    return createProductWhatsAppUrl(product);
   }, [product]);
 
   if (!id) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCart } from '../context/CartContext.jsx';
+import { businessConfig, createGeneralWhatsAppUrl } from '../config/business.js';
 
 export default function Header({ onOpenCart }) {
   const { count } = useCart();
@@ -10,8 +11,8 @@ export default function Header({ onOpenCart }) {
         <a href="/" className="flex items-center gap-3 text-white no-underline">
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold shadow-glow">SJ</span>
           <div>
-            <p className="text-base font-semibold uppercase tracking-[0.25em] text-white/75">SJJOYEROS</p>
-            <p className="text-xs uppercase tracking-[0.35em] text-white/40">Pulseras & accesorios</p>
+            <p className="text-base font-semibold uppercase tracking-[0.25em] text-white/75">{businessConfig.name}</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-white/40">{businessConfig.tagline}</p>
           </div>
         </a>
 
@@ -23,7 +24,7 @@ export default function Header({ onOpenCart }) {
 
         <div className="flex items-center gap-3">
           <a
-            href="https://wa.me/"
+            href={createGeneralWhatsAppUrl()}
             className="inline-flex items-center justify-center rounded-full border border-transparent bg-[#25D366] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(37,211,102,0.22)] transition hover:bg-[#1ebf5a]"
             target="_blank"
             rel="noreferrer"

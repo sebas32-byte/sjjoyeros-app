@@ -35,6 +35,20 @@ Opcionales para acceso local de admin cuando Supabase Auth no esté disponible:
 - `VITE_ADMIN_EMAIL`
 - `VITE_ADMIN_PASSWORD`
 
+Datos comerciales centralizados:
+
+- `VITE_BUSINESS_NAME`
+- `VITE_BUSINESS_TAGLINE`
+- `VITE_WHATSAPP_NUMBER`
+- `VITE_BUSINESS_EMAIL`
+- `VITE_INSTAGRAM_URL`
+- `VITE_FACEBOOK_URL`
+- `VITE_TIKTOK_URL`
+- `VITE_BUSINESS_ADDRESS`
+- `VITE_BUSINESS_HOURS`
+
+Estos datos se consumen desde `src/config/business.js`.
+
 ## Supabase (producción)
 
 Para operar 100% en backend real, deben existir las tablas:

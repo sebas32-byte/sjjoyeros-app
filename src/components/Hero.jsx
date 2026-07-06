@@ -1,4 +1,5 @@
 import React from 'react';
+import { createGeneralWhatsAppUrl } from '../config/business.js';
 
 export default function Hero() {
   return (
@@ -15,7 +16,7 @@ export default function Hero() {
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <a href="#catalogo" className="inline-flex items-center justify-center rounded-full bg-gold px-6 py-4 text-sm font-semibold text-deep-black transition hover:bg-gold-light">Ver productos</a>
-              <a href="https://wa.me/" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Consultas por WhatsApp</a>
+              <a href={createGeneralWhatsAppUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Consultas por WhatsApp</a>
             </div>
           </div>
 
