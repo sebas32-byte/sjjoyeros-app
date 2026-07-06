@@ -1,48 +1,51 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import ProductCard from './ProductCard.jsx';
 
 function normalizeText(value = '') {
   return value?.toString().toLowerCase().normalize('NFD').replace(/[^\w\s]/g, '');
 }
 
-const collectionCards = [
-  {
-    key: 'oro',
-    title: 'Oro',
-    description: 'Joyas elaboradas en oro.',
-    subcategories: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras'],
+const collectionConfig = {
+  ORO: {
+    displayName: 'ORO',
+    familyMatcher: (family) => normalizeText(family).includes('oro') && !normalizeText(family).includes('laminado'),
+    defaults: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras', 'Rosarios'],
   },
-  {
-    key: 'oro laminado',
-    title: 'Oro Laminado',
-    description: 'Joyas en oro laminado de excelente calidad.',
-    subcategories: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras'],
+  'ORO LAMINADO': {
+    displayName: 'ORO LAMINADO',
+    familyMatcher: (family) => normalizeText(family).includes('oro') && normalizeText(family).includes('laminado'),
+    defaults: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras', 'Rosarios'],
   },
-  {
-    key: 'relojes',
-    title: 'Relojes',
-    description: 'Relojes para diferentes estilos.',
-    subcategories: ['all', 'Hombre', 'Mujer', 'Clásicos', 'Deportivos'],
+  'RELOJERÍA': {
+    displayName: 'RELOJERÍA',
+    familyMatcher: (family) => normalizeText(family).includes('reloj'),
+    defaults: ['all', 'Hombre', 'Mujer', 'Clásicos', 'Deportivos'],
   },
-];
+};
 
-function findFamilyForCollection(families = [], collectionKey = '') {
-  const normalizedTarget = normalizeText(collectionKey);
-  const sortedByBestMatch = [...families]
-    .filter((value) => value !== 'all')
-    .sort((a, b) => {
-      const aScore = normalizeText(a).includes(normalizedTarget) ? 1 : 0;
-      const bScore = normalizeText(b).includes(normalizedTarget) ? 1 : 0;
-      return bScore - aScore;
-    });
-  return sortedByBestMatch[0] || 'all';
+function resolveCollectionFamily(families = [], selectedMaterial = '') {
+  const config = collectionConfig[selectedMaterial];
+  if (!config) return 'all';
+  const match = families.find((family) => family !== 'all' && config.familyMatcher(family));
+  return match || 'all';
 }
 
-export default function ProductGrid({ products = [] }) {
+function mergeSubcategories(collectionDefaults = [], catalogSubcategories = []) {
+  const fromCollection = collectionDefaults;
+  const fromCatalog = catalogSubcategories.filter((item) => item !== 'all');
+  return Array.from(new Set(['all', ...fromCollection.filter((item) => item !== 'all'), ...fromCatalog]));
+}
+
+export default function ProductGrid({ products = [], selectedMaterial = '' }) {
   const [search, setSearch] = useState('');
-  const [family, setFamily] = useState('all');
+  const [subcategoryIndex, setSubcategoryIndex] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [stockOnly, setStockOnly] = useState(false);
+  const [priceFilter, setPriceFilter] = useState('all');
   const [subcategory, setSubcategory] = useState('all');
   const [sort, setSort] = useState('featured');
+  const swipeStartX = useRef(0);
 
   const visibleProducts = useMemo(
     () => products.filter((product) => product?.available !== false),
@@ -54,18 +57,25 @@ export default function ProductGrid({ products = [] }) {
     return ['all', ...unique];
   }, [visibleProducts]);
 
-  const selectedCollection = useMemo(() => {
-    if (family === 'all') return null;
-    const normalizedFamily = normalizeText(family);
-    return collectionCards.find((collection) => normalizedFamily.includes(collection.key)) || null;
-  }, [family]);
+  const family = useMemo(() => resolveCollectionFamily(families, selectedMaterial), [families, selectedMaterial]);
 
-  const subcategories = useMemo(() => {
-    if (family === 'all') {
-      return ['all', ...Array.from(new Set(visibleProducts.map((product) => product.subcategory || product.category || 'General'))).sort()];
-    }
-    return ['all', ...Array.from(new Set(visibleProducts.filter((product) => (product.family || product.category) === family).map((product) => product.subcategory || product.category || 'General'))).sort()];
+  const selectedCollection = useMemo(() => collectionConfig[selectedMaterial] || null, [selectedMaterial]);
+
+  const catalogSubcategories = useMemo(() => {
+    if (family === 'all') return [];
+    return Array.from(
+      new Set(
+        visibleProducts
+          .filter((product) => (product.family || product.category) === family)
+          .map((product) => product.subcategory || product.category || 'General'),
+      ),
+    ).sort();
   }, [family, visibleProducts]);
+
+  const subcategories = useMemo(
+    () => mergeSubcategories(selectedCollection?.defaults || ['all'], catalogSubcategories),
+    [selectedCollection, catalogSubcategories],
+  );
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeText(search);
@@ -76,9 +86,18 @@ export default function ProductGrid({ products = [] }) {
               .filter(Boolean)
               .some((value) => normalizeText(value).includes(normalizedSearch))
           : true;
-        const matchesFamily = family === 'all' || (product.family || product.category) === family;
+        const matchesFamily = family !== 'all' && (product.family || product.category) === family;
         const matchesSubcategory = subcategory === 'all' || (product.subcategory || product.category) === subcategory;
-        return matchesSearch && matchesFamily && matchesSubcategory;
+        const matchesStock = !stockOnly || Number(product.stock || 0) > 0;
+        const productPrice = Number(product.price || 0);
+        const matchesPrice = priceFilter === 'all'
+          ? true
+          : priceFilter === 'low'
+            ? productPrice > 0 && productPrice < 500000
+            : priceFilter === 'mid'
+              ? productPrice >= 500000 && productPrice <= 900000
+              : productPrice > 900000;
+        return matchesSearch && matchesFamily && matchesSubcategory && matchesStock && matchesPrice;
       })
       .sort((a, b) => {
         if (sort === 'priceAsc') return (a.price || 0) - (b.price || 0);
@@ -87,137 +106,170 @@ export default function ProductGrid({ products = [] }) {
         if (sort === 'featured') return (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || ((b.sales_count || 0) - (a.sales_count || 0));
         return 0;
       });
-  }, [family, subcategory, visibleProducts, search, sort]);
+  }, [family, subcategory, visibleProducts, search, sort, stockOnly, priceFilter]);
+
+  const collectionCount = useMemo(
+    () => visibleProducts.filter((product) => (product.family || product.category) === family).length,
+    [visibleProducts, family],
+  );
+
+  const activeSubcategory = subcategories[subcategoryIndex] || 'all';
+
+  const handleSubcategorySwipe = (direction) => {
+    setSubcategoryIndex((current) => {
+      if (direction === 'next') return Math.min(current + 1, subcategories.length - 1);
+      return Math.max(current - 1, 0);
+    });
+  };
+
+  const handleTouchStart = (event) => {
+    swipeStartX.current = event.touches?.[0]?.clientX || 0;
+  };
+
+  const handleTouchEnd = (event) => {
+    const endX = event.changedTouches?.[0]?.clientX || 0;
+    const diff = swipeStartX.current - endX;
+    if (Math.abs(diff) < 36) return;
+    handleSubcategorySwipe(diff > 0 ? 'next' : 'prev');
+  };
+
+  React.useEffect(() => {
+    setSubcategory('all');
+    setSubcategoryIndex(0);
+    setSearch('');
+    setSearchOpen(false);
+    setFiltersOpen(false);
+  }, [selectedMaterial]);
+
+  React.useEffect(() => {
+    setSubcategory(activeSubcategory || 'all');
+  }, [activeSubcategory]);
+
+  if (!selectedMaterial || family === 'all' || !selectedCollection) {
+    return null;
+  }
 
   return (
-    <section id="catalogo" className="section-shell mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="section-kicker mb-3 text-sm uppercase tracking-[0.35em] text-gold">Catálogo</p>
-          <h2 className="section-title text-4xl font-semibold text-white sm:text-5xl">Pulseras y accesorios diseñados para vender.</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/60">Explora joyas reales con filtros, búsqueda y orden de producto, ahora conectadas a Supabase.</p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/75">
-            <span className="font-semibold text-white">{filteredProducts.length}</span> productos disponibles
-          </div>
-        </div>
+    <section id="catalogo" className="section-shell collection-entrance mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mb-8 text-center sm:mb-10">
+        <h2 className="text-4xl font-semibold tracking-[0.22em] text-white sm:text-5xl">{selectedCollection.displayName}</h2>
+        <p className="mt-3 text-sm text-white/65">Más de {collectionCount} referencias disponibles.</p>
       </div>
 
       <div className="mb-8">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {collectionCards.map((collection) => {
-            const collectionFamily = findFamilyForCollection(families, collection.key);
-            const isActive = family !== 'all' && collectionFamily === family;
-
-            return (
-              <article key={collection.key} className={`rounded-[2rem] border bg-white/5 p-5 transition ${isActive ? 'border-gold/50' : 'border-white/10 hover:border-gold/30'}`}>
-                <p className="text-xs uppercase tracking-[0.3em] text-gold">Colección</p>
-                <h3 className="mt-3 text-2xl font-semibold text-white">{collection.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/65">{collection.description}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFamily(collectionFamily);
-                    setSubcategory('all');
-                  }}
-                  className="mt-5 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-gold/40 hover:text-gold"
-                >
-                  Ver colección
-                </button>
-              </article>
-            );
-          })}
+        <div className="subcategory-cube-wrap rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 sm:p-6">
+          <div className="cube-stage" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <article key={`${activeSubcategory}-${subcategoryIndex}`} className="cube-face-card">
+              <p className="text-xs uppercase tracking-[0.34em] text-gold/70">Subcategoría</p>
+              <h3 className="mt-4 text-3xl font-semibold tracking-[0.1em] text-white sm:text-4xl">{activeSubcategory === 'all' ? 'TODOS' : activeSubcategory.toUpperCase()}</h3>
+              <p className="mt-3 text-sm text-white/60">Desliza horizontalmente para cambiar.</p>
+            </article>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => handleSubcategorySwipe('prev')}
+              disabled={subcategoryIndex <= 0}
+              className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/70 disabled:opacity-35"
+            >
+              Anterior
+            </button>
+            <div className="flex gap-1.5">
+              {subcategories.map((item, index) => (
+                <span key={`${item}-${index}`} className={`h-1.5 w-6 rounded-full ${index === subcategoryIndex ? 'bg-gold' : 'bg-white/20'}`} />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSubcategorySwipe('next')}
+              disabled={subcategoryIndex >= subcategories.length - 1}
+              className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/70 disabled:opacity-35"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       </div>
 
-      {selectedCollection ? (
-        <div className="mb-8 rounded-[2rem] border border-white/10 bg-white/5 p-4">
-          <p className="mb-3 text-xs uppercase tracking-[0.3em] text-white/55">Subcategorías</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {selectedCollection.subcategories
-              .filter((option) => option === 'all' || subcategories.includes(option))
-              .map((option) => {
-                const isActive = subcategory === option;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setSubcategory(option)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${isActive ? 'border-gold/60 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/75 hover:border-gold/35'}`}
-                  >
-                    {option === 'all' ? 'Todos' : option}
-                  </button>
-                );
-              })}
-          </div>
+      <div className="sticky top-16 z-30 mb-6 flex items-center justify-center gap-3 sm:top-20">
+        <button
+          type="button"
+          onClick={() => setSearchOpen((current) => !current)}
+          className="rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-semibold text-white/85 backdrop-blur"
+        >
+          🔍 Buscar
+        </button>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          className="rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-semibold text-white/85 backdrop-blur"
+        >
+          ⚙️ Filtros
+        </button>
+      </div>
+
+      {searchOpen ? (
+        <div className="mb-6 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-3">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o referencia"
+            className="w-full rounded-full border border-white/10 bg-black/30 px-4 py-3 text-white outline-none"
+          />
         </div>
       ) : null}
 
-      <div className="mb-8 grid gap-4 lg:grid-cols-[1.8fr_1fr]">
-        <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/5 p-5">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-white/80">Buscar</label>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, referencia, categoría"
-              className="w-full rounded-3xl border border-white/10 bg-[#111111] px-4 py-3 text-white outline-none transition focus:border-gold/40"
-            />
-          </div>
+      {filtersOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-3" onClick={() => setFiltersOpen(false)}>
+          <div className="w-full max-w-xl rounded-t-[1.8rem] border border-white/10 bg-[#101010] p-5" onClick={(event) => event.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/20" />
+            <h3 className="text-lg font-semibold text-white">Filtros</h3>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm text-white/70">Ordenar</label>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white"
+                >
+                  <option value="featured">Destacados</option>
+                  <option value="newest">Más recientes</option>
+                  <option value="priceAsc">Precio: menor a mayor</option>
+                  <option value="priceDesc">Precio: mayor a menor</option>
+                </select>
+              </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-white/80">Familia</label>
-              <select
-                value={family}
-                onChange={(e) => { setFamily(e.target.value); setSubcategory('all'); }}
-                className="w-full rounded-3xl border border-white/10 bg-[#111111] px-4 py-3 text-white outline-none"
-              >
-                {families.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-white/80">Subcategoría</label>
-              <select
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full rounded-3xl border border-white/10 bg-[#111111] px-4 py-3 text-white outline-none"
-              >
-                {subcategories.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+              <div>
+                <label className="mb-2 block text-sm text-white/70">Precio</label>
+                <select
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white"
+                >
+                  <option value="all">Todos</option>
+                  <option value="low">Hasta $500.000</option>
+                  <option value="mid">$500.000 a $900.000</option>
+                  <option value="high">Más de $900.000</option>
+                </select>
+              </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-white/80">Ordenar</label>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="w-full rounded-3xl border border-white/10 bg-[#111111] px-4 py-3 text-white outline-none"
-            >
-              <option value="featured">Destacados</option>
-              <option value="priceAsc">Precio: menor a mayor</option>
-              <option value="priceDesc">Precio: mayor a menor</option>
-              <option value="newest">Más nuevos</option>
-            </select>
+              <label className="flex items-center gap-3 text-sm text-white/80">
+                <input type="checkbox" checked={stockOnly} onChange={(e) => setStockOnly(e.target.checked)} />
+                Solo disponibles en stock
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="mt-2 w-full rounded-full bg-gold px-4 py-3 text-sm font-semibold text-deep-black"
+              >
+                Aplicar
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
-          <p className="text-sm uppercase tracking-[0.35em] text-white/50">Consejo</p>
-          <p className="mt-3 text-sm leading-7 text-white/60">Usa el buscador para encontrar piezas por nombre o referencia. Filtra por familia y subcategoría para acotar resultados.</p>
-          <div className="mt-6 grid gap-3">
-            <span className="inline-flex items-center rounded-full bg-white/5 px-4 py-3 text-sm text-white/75">Mover el catálogo en móvil es suave y rápido.</span>
-            <span className="inline-flex items-center rounded-full bg-white/5 px-4 py-3 text-sm text-white/75">Las tarjetas muestran disponibilidad y acciones directas.</span>
-          </div>
-        </div>
-      </div>
+      ) : null}
 
       {filteredProducts.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">

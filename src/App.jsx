@@ -21,6 +21,17 @@ import SettingsPage from './admin/SettingsPage.jsx';
 function PublicApp() {
   const { products } = useProducts();
   const [cartOpen, setCartOpen] = React.useState(false);
+  const [selectedMaterial, setSelectedMaterial] = React.useState('');
+
+  const handleSelectMaterial = React.useCallback((material) => {
+    setSelectedMaterial(material);
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById('catalogo');
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, []);
 
   return (
     <CartProvider>
@@ -32,8 +43,8 @@ function PublicApp() {
               path="/"
               element={
                 <div>
-                  <Hero />
-                  <ProductGrid products={products} />
+                  <Hero onSelectMaterial={handleSelectMaterial} selectedMaterial={selectedMaterial} />
+                  <ProductGrid products={products} selectedMaterial={selectedMaterial} />
                 </div>
               }
             />

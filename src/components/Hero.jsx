@@ -1,32 +1,30 @@
 import React from 'react';
-import { createGeneralWhatsAppUrl } from '../config/business.js';
 
-export default function Hero() {
+const materials = [
+  { id: 'ORO', label: 'ORO' },
+  { id: 'ORO LAMINADO', label: 'ORO LAMINADO' },
+  { id: 'RELOJERÍA', label: 'RELOJERÍA' },
+];
+
+export default function Hero({ onSelectMaterial, selectedMaterial }) {
   return (
-    <section id="inicio" className="hero-section relative overflow-hidden bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_35%),linear-gradient(180deg,#050505_0%,#111111_100%)] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[0.9fr_0.9fr] lg:items-center">
-          <div className="space-y-6 text-white">
-            <p className="text-sm uppercase tracking-[0.35em] text-gold">Joyería moderna</p>
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Pulseras, balinería y accesorios con presencia premium.
-            </h1>
-            <p className="max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
-              Diseños minimalistas para venta mayorista y clientes que buscan calidad, confianza y estilo duradero.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <a href="#catalogo" className="inline-flex items-center justify-center rounded-full bg-gold px-6 py-4 text-sm font-semibold text-deep-black transition hover:bg-gold-light">Ver productos</a>
-              <a href={createGeneralWhatsAppUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Consultas por WhatsApp</a>
-            </div>
-          </div>
-
-          <div className="relative mx-auto flex h-[24rem] w-full max-w-xl items-end overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#161616] via-[#090909] to-[#0b0b0b] shadow-glow">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.15),transparent_20%)]" />
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="relative z-10 p-8 text-white">
-              <p className="text-sm uppercase tracking-[0.35em] text-white/40">Calidad hecha a mano</p>
-              <h2 className="mt-4 text-3xl font-semibold leading-tight">Acabados limpios, detalles diseñados para destacar.</h2>
-            </div>
+    <section id="inicio" className="landing-shell relative overflow-hidden px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:px-8">
+      <div className={`mx-auto flex min-h-[72vh] w-full max-w-3xl flex-col items-center justify-center text-center transition-all duration-700 ${selectedMaterial ? 'scale-[0.985] opacity-60 blur-[1px]' : 'scale-100 opacity-100 blur-0'}`}>
+        <div className="landing-entrance w-full">
+          <p className="text-xs uppercase tracking-[0.42em] text-gold/80">SJ Joyeros</p>
+          <h1 className="mt-5 text-4xl font-semibold tracking-[0.04em] text-white sm:text-5xl">Calidad que no se pela</h1>
+          <div className="mx-auto mt-10 grid w-full max-w-xl gap-4">
+            {materials.map((material, index) => (
+              <button
+                key={material.id}
+                type="button"
+                onClick={() => onSelectMaterial?.(material.id)}
+                className="landing-material-btn rounded-[1.25rem] border border-white/10 bg-white/[0.03] px-6 py-4 text-base font-semibold tracking-[0.28em] text-white transition hover:border-gold/45 hover:text-gold sm:py-5"
+                style={{ animationDelay: `${index * 0.12 + 0.2}s` }}
+              >
+                {material.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

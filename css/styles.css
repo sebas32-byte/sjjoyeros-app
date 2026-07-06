@@ -540,7 +540,76 @@ body::after {
   animation: fadeUp 0.8s ease both;
 }
 
+@keyframes luxuryIntro {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes cubeFaceIn {
+  0% {
+    opacity: 0;
+    transform: perspective(980px) rotateY(16deg) translateX(14px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(980px) rotateY(0deg) translateX(0) scale(1);
+  }
+}
+
+.landing-shell {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(212, 175, 55, 0.14), transparent 30%),
+    radial-gradient(circle at 82% 80%, rgba(255, 255, 255, 0.06), transparent 30%),
+    linear-gradient(180deg, rgba(10, 10, 10, 0.78), rgba(9, 9, 9, 0.95));
+}
+
+.landing-entrance {
+  animation: luxuryIntro 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.landing-material-btn {
+  opacity: 0;
+  animation: luxuryIntro 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.collection-entrance {
+  animation: luxuryIntro 0.65s ease both;
+}
+
+.subcategory-cube-wrap {
+  perspective: 980px;
+}
+
+.cube-stage {
+  perspective: 980px;
+}
+
+.cube-face-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.16), transparent 35%),
+    linear-gradient(165deg, rgba(12, 12, 12, 0.94), rgba(20, 20, 20, 0.9));
+  min-height: 12.5rem;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: cubeFaceIn 0.6s cubic-bezier(0.22, 0.8, 0.2, 1) both;
+}
+
 @media (max-width: 767px) {
+  .cube-face-card {
+    min-height: 11.5rem;
+    padding: 1.45rem;
+  }
+
   .mobile-cta {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
