@@ -5,6 +5,39 @@ function normalizeText(value = '') {
   return value?.toString().toLowerCase().normalize('NFD').replace(/[^\w\s]/g, '');
 }
 
+const collectionCards = [
+  {
+    key: 'oro',
+    title: 'Oro',
+    description: 'Joyas elaboradas en oro.',
+    subcategories: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras'],
+  },
+  {
+    key: 'oro laminado',
+    title: 'Oro Laminado',
+    description: 'Joyas en oro laminado de excelente calidad.',
+    subcategories: ['all', 'Pulseras', 'Cadenas', 'Dijes', 'Anillos', 'Aretes', 'Tobilleras'],
+  },
+  {
+    key: 'relojes',
+    title: 'Relojes',
+    description: 'Relojes para diferentes estilos.',
+    subcategories: ['all', 'Hombre', 'Mujer', 'Clásicos', 'Deportivos'],
+  },
+];
+
+function findFamilyForCollection(families = [], collectionKey = '') {
+  const normalizedTarget = normalizeText(collectionKey);
+  const sortedByBestMatch = [...families]
+    .filter((value) => value !== 'all')
+    .sort((a, b) => {
+      const aScore = normalizeText(a).includes(normalizedTarget) ? 1 : 0;
+      const bScore = normalizeText(b).includes(normalizedTarget) ? 1 : 0;
+      return bScore - aScore;
+    });
+  return sortedByBestMatch[0] || 'all';
+}
+
 export default function ProductGrid({ products = [] }) {
   const [search, setSearch] = useState('');
   const [family, setFamily] = useState('all');
@@ -20,6 +53,12 @@ export default function ProductGrid({ products = [] }) {
     const unique = Array.from(new Set(visibleProducts.map((product) => product.family || product.category || 'Otros')));
     return ['all', ...unique];
   }, [visibleProducts]);
+
+  const selectedCollection = useMemo(() => {
+    if (family === 'all') return null;
+    const normalizedFamily = normalizeText(family);
+    return collectionCards.find((collection) => normalizedFamily.includes(collection.key)) || null;
+  }, [family]);
 
   const subcategories = useMemo(() => {
     if (family === 'all') {
@@ -64,6 +103,56 @@ export default function ProductGrid({ products = [] }) {
           </div>
         </div>
       </div>
+
+      <div className="mb-8">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {collectionCards.map((collection) => {
+            const collectionFamily = findFamilyForCollection(families, collection.key);
+            const isActive = family !== 'all' && collectionFamily === family;
+
+            return (
+              <article key={collection.key} className={`rounded-[2rem] border bg-white/5 p-5 transition ${isActive ? 'border-gold/50' : 'border-white/10 hover:border-gold/30'}`}>
+                <p className="text-xs uppercase tracking-[0.3em] text-gold">Colección</p>
+                <h3 className="mt-3 text-2xl font-semibold text-white">{collection.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-white/65">{collection.description}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFamily(collectionFamily);
+                    setSubcategory('all');
+                  }}
+                  className="mt-5 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-gold/40 hover:text-gold"
+                >
+                  Ver colección
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      {selectedCollection ? (
+        <div className="mb-8 rounded-[2rem] border border-white/10 bg-white/5 p-4">
+          <p className="mb-3 text-xs uppercase tracking-[0.3em] text-white/55">Subcategorías</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {selectedCollection.subcategories
+              .filter((option) => option === 'all' || subcategories.includes(option))
+              .map((option) => {
+                const isActive = subcategory === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setSubcategory(option)}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${isActive ? 'border-gold/60 bg-gold/15 text-gold' : 'border-white/10 bg-black/20 text-white/75 hover:border-gold/35'}`}
+                  >
+                    {option === 'all' ? 'Todos' : option}
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-8 grid gap-4 lg:grid-cols-[1.8fr_1fr]">
         <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/5 p-5">

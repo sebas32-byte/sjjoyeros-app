@@ -7,6 +7,7 @@ export default function Checkout() {
   const [submitted, setSubmitted] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function Checkout() {
       await createOrder({
         customer_name: name.trim(),
         customer_phone: phone.trim(),
+        customer_email: email.trim() || null,
         items: items.map((item) => ({
           id: item.id,
           name: item.name,
@@ -58,9 +60,12 @@ export default function Checkout() {
       <h1 className="mb-4 text-2xl font-semibold">Checkout</h1>
       {submitted ? (
         <div className="rounded-[1rem] bg-white/5 p-6">
-          <p className="text-white">Gracias. Tu pedido ha sido registrado correctamente.</p>
-          <p className="mt-2 text-white/60">Te contactaremos en breve para confirmar los detalles y el pago.</p>
-          <a href="/" className="mt-4 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white">Volver al catálogo</a>
+          <h2 className="text-2xl font-semibold text-white">¡Pedido recibido!</h2>
+          <p className="mt-3 text-white/80">Gracias por comprar en SJ Joyeros.</p>
+          <p className="mt-2 text-white/60">Hemos recibido correctamente tu solicitud.</p>
+          <p className="mt-2 text-white/60">Nuestro equipo revisará el pedido y se comunicará contigo por WhatsApp para confirmar disponibilidad, forma de pago y envío.</p>
+          <p className="mt-4 text-sm font-semibold text-gold">Estado inicial: Pendiente de confirmación.</p>
+          <a href="/#catalogo" className="mt-5 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white">Continuar comprando</a>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -88,6 +93,8 @@ export default function Checkout() {
             <input required value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-md bg-white/5 p-3 text-white" />
             <label className="block text-sm text-white/70">Teléfono o WhatsApp</label>
             <input required value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-md bg-white/5 p-3 text-white" />
+            <label className="block text-sm text-white/70">Correo electrónico (opcional)</label>
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md bg-white/5 p-3 text-white" />
             <label className="block text-sm text-white/70">Notas</label>
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="min-h-[100px] w-full rounded-md bg-white/5 p-3 text-white" />
           </div>

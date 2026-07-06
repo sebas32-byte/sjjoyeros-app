@@ -68,6 +68,7 @@ export default function OrdersPage() {
                 <div>
                   <p className="font-semibold">Pedido #{order.id.slice(0, 8)}</p>
                   <p className="text-sm text-white/60">{order.customer_name || 'Cliente sin nombre'} · {order.customer_phone || 'Sin teléfono'}</p>
+                  {order.customer_email ? <p className="text-sm text-white/60">Correo: {order.customer_email}</p> : null}
                   <p className="text-sm text-white/60">Creado: {formatDate(order.created_at)}</p>
                 </div>
                 <select value={order.status} onChange={(event) => handleStatusChange(order.id, event.target.value)} className="rounded-full border border-white/10 bg-black/40 px-3 py-2">
