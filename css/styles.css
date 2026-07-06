@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-gold: #d4af37;
+  --color-gold-light: #e8c84a;
+  --color-gold-deep: #b8962e;
+  --color-deep-black: #0a0a0a;
+  --color-dark-surface: #141414;
+  --color-soft-surface: #1e1e1e;
+  --color-muted-surface: #2a2a2a;
+  --font-display: "Cormorant Garamond", serif;
+  --font-body: "Montserrat", sans-serif;
+  --shadow-glow: 0 18px 60px rgba(212, 175, 55, 0.16);
+}
 
 :root {
   --bg: #0a0a0a;

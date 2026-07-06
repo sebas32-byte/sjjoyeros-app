@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '';
 
 function normalizeUrl(url = '') {
-  if (!url) return url;
+  if (!url) return '';
   const trimmedUrl = url.trim();
   const match = trimmedUrl.match(/^(https?:\/\/[^/]+)/);
   if (match) return match[1];
@@ -14,10 +14,8 @@ function normalizeUrl(url = '') {
 const supabaseUrl = normalizeUrl(rawUrl);
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey && /^https?:\/\//.test(supabaseUrl));
 
-if (!isSupabaseConfigured) {
-  console.warn('[supabase] Missing or invalid env vars VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export default supabase;
