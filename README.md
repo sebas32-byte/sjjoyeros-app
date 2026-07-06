@@ -1,31 +1,56 @@
-# SJJOYEROS
+# SJ Joyeros - V1.0
 
-Catálogo estático de joyería premium con experiencia móvil primero, búsqueda rápida, filtros por categoría, fichas de producto y acceso directo a WhatsApp.
+Tienda de joyería construida con React + Vite, con catálogo público, carrito, checkout y panel administrativo.
 
-## Estructura
+## Stack
 
-- `index.html` — punto de entrada y contenido principal
-- `css/styles.css` — estilos globales, atmósfera visual y componentes premium
-- `js/app.js` — catálogo, filtros, carrito, favoritos, modal de producto y WhatsApp
-- `assets/` — imágenes, íconos, videos o recursos de marca
-- `components/` — fragmentos reutilizables si el proyecto crece
+- React 19
+- React Router 6
+- Vite 5
+- Supabase JS
+- Respaldo local (localStorage) cuando Supabase no está disponible
 
-## Qué mejora esta versión
+## Módulos principales
 
-- Hero más editorial y orientado a conversión
-- Catálogo con búsqueda, filtros y ordenamiento
-- Fichas de producto tipo "página" con detalles, confianza y CTA
-- Favoritos persistentes y carrito con guardado local
-- Mejor lectura móvil con navegación compacta y barra fija inferior
-- SEO base con metadatos y datos estructurados
+- Sitio público: catálogo, filtros, detalle de producto, carrito y checkout.
+- Panel admin: login, productos, categorías y pedidos.
+- Capa de datos: operaciones contra Supabase con fallback automático a almacenamiento local.
 
-## Uso
+## Scripts
 
-Abre `index.html` en el navegador para ver la experiencia completa.
+- `npm run dev`: entorno local.
+- `npm run lint`: validación de código.
+- `npm run build`: compilación de producción.
+- `npm run preview`: previsualización local del build.
 
-## Mantenimiento
+## Variables de entorno
 
-- Agrega nuevos productos en `js/app.js`
-- Ajusta la identidad visual en `css/styles.css`
-- Usa `assets/` para fotografía de producto y piezas de marca
-- Mantén textos de marca, confianza y conversiones alineados con SJJOYEROS
+Copia `.env.example` a `.env` y completa los valores:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Opcionales para acceso local de admin cuando Supabase Auth no esté disponible:
+
+- `VITE_ADMIN_EMAIL`
+- `VITE_ADMIN_PASSWORD`
+
+## Supabase (producción)
+
+Para operar 100% en backend real, deben existir las tablas:
+
+- `products`
+- `categories`
+- `orders`
+
+Y configurar políticas RLS acordes al modelo de negocio del panel y checkout.
+
+## Deploy en Netlify
+
+El proyecto está preparado con `netlify.toml`:
+
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Redirect SPA: `/* -> /index.html` (incluye rutas de `/admin/*`)
+
+Recuerda cargar en Netlify las variables de entorno de Supabase antes de publicar.

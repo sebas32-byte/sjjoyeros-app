@@ -1,6 +1,15 @@
 # Configuración
 
-Coloca aquí archivos de configuración para entornos y secretos que no quieras commitear.
+Este proyecto usa variables de entorno (`.env`) para configuración.
 
-- `config/config.sample.js` - plantilla pública de ejemplo.
-- Añade `config/config.js` al `.gitignore` y usa para valores privados (no subir al repositorio).
+Variables principales:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Variables opcionales para login admin local de respaldo:
+
+- `VITE_ADMIN_EMAIL`
+- `VITE_ADMIN_PASSWORD`
+
+Referencia recomendada: `.env.example` en la raíz del proyecto.
