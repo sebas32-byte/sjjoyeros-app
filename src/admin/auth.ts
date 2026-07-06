@@ -2,9 +2,21 @@ import { supabase } from '../lib/supabase.js';
 
 const SESSION_STORAGE_KEY = 'sjjoyeros_admin_session';
 
+type LocalAdminSession = {
+  email: string;
+  authenticatedAt: string;
+};
+
+type ViteEnvMap = Record<string, string | undefined>;
+
+function getEnv() {
+  return (import.meta as ImportMeta & { env: ViteEnvMap }).env;
+}
+
 function getFallbackCredentials() {
-  const email = import.meta.env.VITE_ADMIN_EMAIL?.trim();
-  const password = import.meta.env.VITE_ADMIN_PASSWORD?.trim();
+  const env = getEnv();
+  const email = env.VITE_ADMIN_EMAIL?.trim();
+  const password = env.VITE_ADMIN_PASSWORD?.trim();
   if (!email || !password) {
     throw new Error('Configura VITE_ADMIN_EMAIL y VITE_ADMIN_PASSWORD o habilita Supabase para entrar al panel');
   }
@@ -15,14 +27,14 @@ function readStoredSession() {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? (JSON.parse(raw) as LocalAdminSession) : null;
   } catch (error) {
     console.warn('No se pudo leer la sesión local:', error);
     return null;
   }
 }
 
-function writeStoredSession(session) {
+function writeStoredSession(session: LocalAdminSession) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
 }
