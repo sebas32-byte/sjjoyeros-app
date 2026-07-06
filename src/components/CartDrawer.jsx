@@ -1,10 +1,39 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useCart } from '../context/CartContext.jsx';
 
 export default function CartDrawer({ onClose }) {
   const { items, removeItem, updateQty, clear } = useCart();
+  const [draftQty, setDraftQty] = useState({});
 
   const total = items.reduce((s, i) => s + ((i.price || 0) * (i.quantity || 1)), 0);
+
+  const inputValues = useMemo(() => {
+    const values = {};
+    items.forEach((item) => {
+      const current = draftQty[item.id];
+      values[item.id] = current ?? String(item.quantity ?? 1);
+    });
+    return values;
+  }, [draftQty, items]);
+
+  function commitQuantity(productId) {
+    const rawValue = inputValues[productId] ?? '';
+    const parsedValue = Number(rawValue);
+
+    if (!rawValue || !Number.isFinite(parsedValue) || parsedValue <= 0) {
+      removeItem(productId);
+      setDraftQty((current) => {
+        const next = { ...current };
+        delete next[productId];
+        return next;
+      });
+      return;
+    }
+
+    const nextQty = Math.floor(parsedValue);
+    updateQty(productId, nextQty);
+    setDraftQty((current) => ({ ...current, [productId]: String(nextQty) }));
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
@@ -23,7 +52,25 @@ export default function CartDrawer({ onClose }) {
                 <p className="text-sm text-white/60">{it.price ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(it.price) : 'Precio'}</p>
               </div>
               <div className="flex items-center gap-2">
-                <input type="number" min="1" value={it.quantity} onChange={(e) => updateQty(it.id, Math.max(1, Number(e.target.value || 1)))} className="w-16 rounded-md bg-white/5 p-1 text-white" />
+                <input
+                  type="number"
+                  min="0"
+                  value={inputValues[it.id] ?? String(it.quantity ?? 1)}
+                  onFocus={(event) => event.target.select()}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setDraftQty((current) => ({ ...current, [it.id]: value }));
+                  }}
+                  onBlur={() => commitQuantity(it.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      commitQuantity(it.id);
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  className="w-16 rounded-md bg-white/5 p-1 text-white"
+                />
                 <button onClick={() => removeItem(it.id)} className="text-white/60">Eliminar</button>
               </div>
             </div>

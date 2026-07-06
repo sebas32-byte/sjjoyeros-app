@@ -230,7 +230,7 @@ export default function ProductsPage() {
                 </p>
                 <p className="text-xs text-white/50">{product.reference || product.sku || product.id} · {product.available !== false ? 'Activo en catálogo' : 'Oculto en catálogo'}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={() => handleToggleAvailability(product)} className="rounded-full border border-white/10 px-3 py-2 text-sm">
                   {product.available !== false ? 'Desactivar' : 'Activar'}
                 </button>

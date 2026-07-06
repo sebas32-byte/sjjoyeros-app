@@ -83,7 +83,7 @@ export default function CategoriesPage() {
                 <p className="font-semibold">{category.name}</p>
                 <p className="text-sm text-white/60">{category.slug}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={() => handleEdit(category)} className="rounded-full border border-white/10 px-3 py-2 text-sm">Editar</button>
                 <button onClick={() => handleDelete(category.id)} className="rounded-full bg-red-500/80 px-3 py-2 text-sm">Eliminar</button>
               </div>
