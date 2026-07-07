@@ -44,7 +44,7 @@ function PublicApp() {
               element={
                 <div>
                   <Hero onSelectMaterial={handleSelectMaterial} selectedMaterial={selectedMaterial} />
-                  <ProductGrid products={products} selectedMaterial={selectedMaterial} />
+                  <ProductGrid products={products} selectedMaterial={selectedMaterial} onSelectMaterial={handleSelectMaterial} />
                 </div>
               }
             />

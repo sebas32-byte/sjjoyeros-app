@@ -11,7 +11,10 @@ export default function Hero({ onSelectMaterial, selectedMaterial }) {
     <section id="inicio" className="landing-shell relative overflow-hidden px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:px-8">
       <div className={`mx-auto flex min-h-[72vh] w-full max-w-3xl flex-col items-center justify-center text-center transition-all duration-700 ${selectedMaterial ? 'scale-[0.985] opacity-60 blur-[1px]' : 'scale-100 opacity-100 blur-0'}`}>
         <div className="landing-entrance w-full">
-          <p className="text-xs uppercase tracking-[0.42em] text-gold/80">SJ Joyeros</p>
+          <div className="landing-mark-wrap mx-auto inline-flex items-center justify-center rounded-full px-4 py-2">
+            <span className="landing-mark-halo" aria-hidden="true" />
+            <p className="relative text-xs uppercase tracking-[0.42em] text-gold/90">SJ Joyeros</p>
+          </div>
           <h1 className="mt-5 text-4xl font-semibold tracking-[0.04em] text-white sm:text-5xl">Calidad que no se pela</h1>
           <div className="mx-auto mt-10 grid w-full max-w-xl gap-4">
             {materials.map((material, index) => (
