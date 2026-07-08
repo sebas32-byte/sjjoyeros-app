@@ -19,7 +19,7 @@ import OrdersPage from './admin/OrdersPage.jsx';
 import SettingsPage from './admin/SettingsPage.jsx';
 
 function PublicApp() {
-  const { products } = useProducts();
+  const { products, loading } = useProducts();
   const [cartOpen, setCartOpen] = React.useState(false);
   const [selectedMaterial, setSelectedMaterial] = React.useState('');
 
@@ -44,7 +44,7 @@ function PublicApp() {
               element={
                 <div>
                   <Hero onSelectMaterial={handleSelectMaterial} selectedMaterial={selectedMaterial} />
-                  <ProductGrid products={products} selectedMaterial={selectedMaterial} onSelectMaterial={handleSelectMaterial} />
+                  <ProductGrid products={products} loading={loading} selectedMaterial={selectedMaterial} onSelectMaterial={handleSelectMaterial} />
                 </div>
               }
             />

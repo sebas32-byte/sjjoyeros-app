@@ -5,6 +5,14 @@ import { businessConfig, createGeneralWhatsAppUrl } from '../config/business.js'
 export default function Header({ onOpenCart }) {
   const { count } = useCart();
   const [isHiddenOnMobile, setIsHiddenOnMobile] = useState(false);
+  const [countPulse, setCountPulse] = useState(false);
+
+  useEffect(() => {
+    if (count <= 0) return;
+    setCountPulse(true);
+    const timer = window.setTimeout(() => setCountPulse(false), 280);
+    return () => window.clearTimeout(timer);
+  }, [count]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -97,7 +105,7 @@ export default function Header({ onOpenCart }) {
             </svg>
             <span className="hidden sm:inline">Carrito</span>
             {count > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-deep-black sm:static sm:ml-2 sm:h-6 sm:min-w-[1.5rem] sm:px-2 sm:text-xs">
+              <span className={`absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-deep-black sm:static sm:ml-2 sm:h-6 sm:min-w-[1.5rem] sm:px-2 sm:text-xs ${countPulse ? 'cart-count-pop' : ''}`}>
                 {count}
               </span>
             )}

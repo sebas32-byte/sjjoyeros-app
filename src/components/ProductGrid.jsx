@@ -137,7 +137,7 @@ function getCardTransform(index, activeIndex) {
   };
 }
 
-export default function ProductGrid({ products = [], selectedMaterial = '', onSelectMaterial }) {
+export default function ProductGrid({ products = [], loading = false, selectedMaterial = '', onSelectMaterial }) {
   const [search, setSearch] = useState('');
   const [activeSubcategoryIndex, setActiveSubcategoryIndex] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -211,6 +211,8 @@ export default function ProductGrid({ products = [], selectedMaterial = '', onSe
         return 0;
       });
   }, [materialProducts, subcategory, search, sort, stockOnly, priceFilter]);
+
+  const resultTransitionKey = `${selectedMaterial}-${subcategory}-${sort}-${search}-${priceFilter}-${stockOnly}`;
 
   const handleSubcategoryScroll = () => {
     if (scrollRafRef.current) return;
@@ -421,16 +423,37 @@ export default function ProductGrid({ products = [], selectedMaterial = '', onSe
         </div>
       ) : null}
 
-      {filteredProducts.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      {loading ? (
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3" aria-label="Cargando productos">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={`skeleton-${index}`} className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-4">
+              <div className="h-52 animate-pulse rounded-[1.5rem] bg-white/10" />
+              <div className="mt-4 space-y-3">
+                <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
+                <div className="h-6 w-3/4 animate-pulse rounded bg-white/10" />
+                <div className="h-4 w-full animate-pulse rounded bg-white/10" />
+                <div className="h-4 w-5/6 animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredProducts.length > 0 ? (
+        <div key={resultTransitionKey} className="catalog-results-enter grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
         <div className="rounded-[2rem] border border-dashed border-white/15 bg-white/5 p-12 text-center text-white/60">
-          <p className="text-lg font-semibold text-white">No se encontraron resultados.</p>
-          <p className="mt-3 text-sm leading-7">Ajusta los filtros o la búsqueda para ver más productos.</p>
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-gold/25 bg-gold/10 text-gold">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="m6 9 6-5 6 5" />
+              <path d="M4 10h16" />
+              <path d="M6 10v8h12v-8" />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-white">Estamos preparando esta colección.</p>
+          <p className="mt-3 text-sm leading-7">Pronto verás nuevas piezas en esta selección.</p>
         </div>
       )}
     </section>
