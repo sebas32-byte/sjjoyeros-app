@@ -26,6 +26,7 @@ export type Product = {
   featured?: boolean | null;
   image?: string | null;
   images?: string[] | null;
+  image_paths?: string[] | null;
   material?: string | null;
   weight?: string | null;
   family?: string | null;

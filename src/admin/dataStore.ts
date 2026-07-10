@@ -38,6 +38,10 @@ function createId(prefix: string) {
 }
 
 function normalizeProduct(input: any) {
+  const normalizedImages = Array.isArray(input.images)
+    ? input.images.filter(Boolean)
+    : (input.image ? [input.image] : []);
+
   return {
     id: input.id || createId('product'),
     name: input.name || 'Producto sin nombre',
@@ -50,7 +54,10 @@ function normalizeProduct(input: any) {
     stock: Number(input.stock || 0),
     available: input.available !== false,
     featured: Boolean(input.featured),
-    image: input.image || '',
+    image: input.image || normalizedImages[0] || '',
+    images: normalizedImages,
+    image_paths: Array.isArray(input.image_paths) ? input.image_paths.filter(Boolean) : [],
+    material: input.material || '',
     family: input.family || '',
     subcategory: input.subcategory || '',
     reference: input.reference || input.sku || '',

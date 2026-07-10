@@ -3,6 +3,8 @@ const CATEGORY_PREFIX_MAP = {
   cadenas: 'CAD',
   anillos: 'ANI',
   dijes: 'DIJ',
+  aretes: 'ARE',
+  tobilleras: 'TOB',
   sets: 'SET',
   set: 'SET',
   relojes: 'REL',

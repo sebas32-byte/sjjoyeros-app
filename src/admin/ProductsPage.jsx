@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createProduct, deleteProduct, listCategories, listProducts, updateProduct } from './api.ts';
+import { createProduct, deleteProduct, listProducts, updateProduct } from './api.ts';
 import {
   BALIN_OPTIONS,
   COLLECTION_OPTIONS,
-  DEFAULT_PRODUCT_TYPES,
   PRODUCT_STATUS_OPTIONS,
   generateDescriptionFromTemplate,
   generateReference,
@@ -13,47 +12,53 @@ import {
   toAvailability,
   toSlug,
 } from './productAutomation.js';
+import ProductImagesUploader from './components/ProductImagesUploader.jsx';
+import { useProductImagesUpload } from './hooks/useProductImagesUpload.js';
+import {
+  PRODUCT_CATEGORY_OPTIONS,
+  PRODUCT_MATERIAL_OPTIONS,
+  PRODUCT_SUBCATEGORY_OPTIONS,
+} from './constants/productMeta.js';
 
 const emptyProduct = {
   name: '',
   slug: '',
   sku: '',
   category: '',
+  subcategory: '',
+  material: '',
   description: '',
   short_description: '',
-  price: 0,
+  price: '',
   stock: 0,
   available: true,
   featured: false,
-  image: '',
   family: '',
-  subcategory: '',
   reference: '',
   inventory_status: 'Disponible',
   bead_size: '',
   description_template: '',
-  imagesText: '',
 };
-
-function parseImagesText(value = '') {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function toImagesText(images = [], image = '') {
-  const source = Array.isArray(images) && images.length ? images : (image ? [image] : []);
-  return source.join('\n');
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(emptyProduct);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const {
+    images,
+    addFiles,
+    retryImage,
+    setPrimaryImage,
+    moveImage,
+    removeImage,
+    resetWithUrls,
+    clearAll,
+    finalizeForProduct,
+    hasPendingUploads,
+    hasUploadErrors,
+  } = useProductImagesUpload();
 
   const descriptionTemplateOptions = useMemo(() => getDescriptionTemplateOptions(), []);
 
@@ -63,14 +68,6 @@ export default function ProductsPage() {
       .filter(Boolean);
     return Array.from(new Set([...COLLECTION_OPTIONS, ...knownCollections]));
   }, [products]);
-
-  const productTypeOptions = useMemo(() => {
-    const knownTypes = products
-      .filter((product) => !form.category || product.category === form.category)
-      .map((product) => (product?.subcategory || '').trim())
-      .filter(Boolean);
-    return Array.from(new Set([...DEFAULT_PRODUCT_TYPES, ...knownTypes]));
-  }, [products, form.category]);
 
   async function loadProducts() {
     setLoading(true);
@@ -85,41 +82,51 @@ export default function ProductsPage() {
     }
   }
 
-  async function loadCategories() {
-    try {
-      const data = await listCategories();
-      setCategories(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.warn('No se pudieron cargar las categorías:', err);
-      setCategories([]);
-    }
-  }
-
   useEffect(() => {
     loadProducts();
-    loadCategories();
   }, []);
+
+  function handlePriceChange(event) {
+    const digitsOnly = event.target.value.replace(/\D/g, '');
+    setForm((current) => ({ ...current, price: digitsOnly }));
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     try {
-      const parsedImages = parseImagesText(form.imagesText || '');
-      const image = parsedImages[0] || form.image || '';
+      const priceValue = Number(String(form.price || '').replace(/\D/g, ''));
+      if (!priceValue || priceValue <= 0) {
+        throw new Error('El precio debe ser mayor que cero');
+      }
+
+      if (!form.category) throw new Error('Selecciona una categoría');
+      if (!form.subcategory) throw new Error('Selecciona una subcategoría');
+      if (!form.material) throw new Error('Selecciona un material');
+
       const slug = toSlug(form.name || form.slug || '');
+      const imagePayload = await finalizeForProduct({
+        category: form.category,
+        productSlug: slug,
+      });
+
+      if (!imagePayload.images.length) {
+        throw new Error('Debes cargar al menos una imagen del producto');
+      }
+
       const reference = generateReference(products, form.category, editingId ? form.reference : '');
       const sku = generateSku(products, form.category, editingId ? form.sku : '');
       const inventoryStatus = form.inventory_status || 'Disponible';
       const payload = {
         ...form,
+        price: priceValue,
         slug,
         reference,
         sku,
         inventory_status: inventoryStatus,
         available: toAvailability(inventoryStatus),
-        images: parsedImages,
-        image,
+        images: imagePayload.images,
+        image: imagePayload.image,
       };
-      delete payload.imagesText;
 
       if (editingId) {
         await updateProduct(editingId, payload);
@@ -128,6 +135,7 @@ export default function ProductsPage() {
       }
       setForm(emptyProduct);
       setEditingId(null);
+      await clearAll();
       await loadProducts();
     } catch (err) {
       setError(err.message || 'No se pudo guardar el producto');
@@ -145,18 +153,24 @@ export default function ProductsPage() {
 
   function handleEdit(product) {
     setEditingId(product.id);
+    const productImages = Array.isArray(product.images) && product.images.length
+      ? product.images
+      : (product.image ? [product.image] : []);
+
     setForm({
       ...emptyProduct,
       ...product,
+      price: product?.price ? String(product.price) : '',
       inventory_status: inferStatus(product),
-      imagesText: toImagesText(product.images, product.image),
     });
+    resetWithUrls(productImages);
   }
 
   function handleCancelEdit() {
     setForm(emptyProduct);
     setEditingId(null);
     setError('');
+    void clearAll();
   }
 
   async function handleToggleAvailability(product) {
@@ -199,20 +213,8 @@ export default function ProductsPage() {
               required
             >
               <option value="">Categoría</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.name}>{category.name}</option>
-              ))}
-            </select>
-
-            <select
-              value={form.family || ''}
-              onChange={(event) => setForm((current) => ({ ...current, family: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
-              required
-            >
-              <option value="">Colección</option>
-              {collectionOptions.map((collection) => (
-                <option key={collection} value={collection}>{collection}</option>
+              {PRODUCT_CATEGORY_OPTIONS.map((category) => (
+                <option key={category} value={category}>{category}</option>
               ))}
             </select>
 
@@ -222,9 +224,32 @@ export default function ProductsPage() {
               className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
               required
             >
-              <option value="">Tipo de producto</option>
-              {productTypeOptions.map((item) => (
+              <option value="">Subcategoría</option>
+              {PRODUCT_SUBCATEGORY_OPTIONS.map((item) => (
                 <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+
+            <select
+              value={form.material || ''}
+              onChange={(event) => setForm((current) => ({ ...current, material: event.target.value }))}
+              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              required
+            >
+              <option value="">Material</option>
+              {PRODUCT_MATERIAL_OPTIONS.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+
+            <select
+              value={form.family || ''}
+              onChange={(event) => setForm((current) => ({ ...current, family: event.target.value }))}
+              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+            >
+              <option value="">Colección (opcional)</option>
+              {collectionOptions.map((collection) => (
+                <option key={collection} value={collection}>{collection}</option>
               ))}
             </select>
           </div>
@@ -234,10 +259,11 @@ export default function ProductsPage() {
           <p className="text-xs uppercase tracking-[0.28em] text-white/60">Información comercial</p>
           <div className="grid gap-4 md:grid-cols-2">
             <input
-              value={form.price || 0}
-              type="number"
-              onChange={(event) => setForm((current) => ({ ...current, price: Number(event.target.value) }))}
-              placeholder="Precio"
+              value={form.price || ''}
+              type="text"
+              inputMode="numeric"
+              onChange={handlePriceChange}
+              placeholder="Ej: 35.000"
               className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
               required
             />
@@ -294,13 +320,17 @@ export default function ProductsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm text-white/70">Imágenes (una URL por línea o separadas por coma)</label>
-            <textarea
-              value={form.imagesText || ''}
-              onChange={(event) => setForm({ ...form, imagesText: event.target.value, image: parseImagesText(event.target.value)[0] || '' })}
-              placeholder="https://.../imagen-1.jpg&#10;https://.../imagen-2.jpg"
-              className="min-h-[100px] w-full rounded-[1.5rem] border border-white/10 bg-black/40 px-4 py-3"
+            <label className="block text-sm text-white/70">Imágenes del producto</label>
+            <ProductImagesUploader
+              images={images}
+              onAddFiles={addFiles}
+              onRemove={removeImage}
+              onSetPrimary={setPrimaryImage}
+              onMove={moveImage}
+              onRetry={retryImage}
             />
+            {hasPendingUploads ? <p className="text-xs text-white/50">Las imágenes se están subiendo en segundo plano.</p> : null}
+            {hasUploadErrors ? <p className="text-xs text-red-300">Hay imágenes con error. Reintenta o elimínalas antes de guardar.</p> : null}
           </div>
 
           <textarea
@@ -328,7 +358,7 @@ export default function ProductsPage() {
               <div>
                 <p className="font-semibold">{product.name}</p>
                 <p className="text-sm text-white/60">
-                  {product.category || 'Sin categoría'} · Stock: {product.stock ?? 0} · Precio: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(product.price || 0))}
+                  {product.category || 'Sin categoría'} · {product.subcategory || 'Sin subcategoría'} · {product.material || 'Sin material'} · Stock: {product.stock ?? 0} · Precio: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(product.price || 0))}
                 </p>
                 <p className="text-xs text-white/50">{product.reference || product.sku || product.id} · {product.inventory_status || (product.available !== false ? 'Disponible' : 'Agotado')} · Balín: {product.bead_size || 'N/A'}</p>
               </div>
