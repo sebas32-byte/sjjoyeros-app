@@ -52,6 +52,10 @@ export default function ProductCard({ product }) {
             <span>{reference}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-white/80">Balín:</span>
+            <span>{product?.bead_size || 'N/A'}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-white/80">Disponibilidad:</span>
             <span className={available ? 'text-green-400' : 'text-red-400'}>{available ? 'Disponible' : 'Agotado'}</span>
           </div>

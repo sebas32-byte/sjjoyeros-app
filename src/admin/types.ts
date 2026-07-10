@@ -31,6 +31,9 @@ export type Product = {
   family?: string | null;
   subcategory?: string | null;
   reference?: string | null;
+  bead_size?: string | null;
+  inventory_status?: 'Disponible' | 'Agotado' | 'Próximamente' | string | null;
+  description_template?: string | null;
   sales_count?: number | null;
   created_at?: string;
 };

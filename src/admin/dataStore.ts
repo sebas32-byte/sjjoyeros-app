@@ -54,6 +54,9 @@ function normalizeProduct(input: any) {
     family: input.family || '',
     subcategory: input.subcategory || '',
     reference: input.reference || input.sku || '',
+    bead_size: input.bead_size || '',
+    inventory_status: input.inventory_status || (input.available !== false ? 'Disponible' : 'Agotado'),
+    description_template: input.description_template || '',
     created_at: input.created_at || new Date().toISOString(),
     ...input,
   };
