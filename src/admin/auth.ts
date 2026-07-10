@@ -55,11 +55,16 @@ export async function signIn(email: string, password: string) {
       // Credenciales inválidas en Supabase deben mantenerse como error real.
       const authErrorStatus = (error as any)?.status;
       if (authErrorStatus === 400 || authErrorStatus === 401 || authErrorStatus === 422) {
-        throw error;
+        throw new Error(error.message || 'Credenciales inválidas');
       }
 
       console.warn('Supabase no disponible para login, usando respaldo local:', error);
     } catch (error) {
+      const message = String((error as any)?.message || '').toLowerCase();
+      const isAuthError = message.includes('invalid') || message.includes('credenciales') || message.includes('email not confirmed');
+      if (isAuthError) {
+        throw error;
+      }
       console.warn('Supabase no disponible para login, usando respaldo local:', error);
     }
   }

@@ -50,6 +50,16 @@ async function withSupabase<T>(operation: () => Promise<T>, fallback: () => Prom
   try {
     return await withTimeout(operation());
   } catch (error) {
+    const status = Number((error as any)?.status || 0);
+    const message = String((error as any)?.message || '').toLowerCase();
+    const isSchemaError = message.includes('schema cache') || message.includes('column');
+    const isPermissionError = status === 401 || status === 403 || message.includes('row-level security') || message.includes('permission denied') || message.includes('not authenticated') || message.includes('jwt');
+    const isValidationError = status === 400 || status === 422;
+
+    if (isSchemaError || isPermissionError || isValidationError) {
+      throw error;
+    }
+
     console.warn('Supabase no disponible, usando respaldo local:', error);
     return fallback();
   }

@@ -59,6 +59,25 @@ Para operar 100% en backend real, deben existir las tablas:
 
 Y configurar políticas RLS acordes al modelo de negocio del panel y checkout.
 
+### Storage para imágenes de productos
+
+El panel admin sube imágenes al bucket `productos` usando sesión autenticada de Supabase.
+
+- Bucket esperado: `productos` (público).
+- Las subidas usan RLS sobre `storage.objects`.
+- Políticas recomendadas: `supabase/storage_policies.sql`.
+
+Importante: si el admin inicia sesión solo con respaldo local (sin sesión real de Supabase), la subida a Storage será rechazada por RLS.
+
+### Esquema y RLS para productos (v1.1)
+
+Antes de publicar catálogo oficial, ejecuta:
+
+- `supabase/schema_products_v11.sql`
+- `supabase/storage_policies.sql`
+
+Con esto el admin autenticado puede crear/editar/eliminar productos y subir imágenes al bucket `productos` con seguridad activa.
+
 ## Deploy en Netlify
 
 El proyecto está preparado con `netlify.toml`:

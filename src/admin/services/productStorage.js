@@ -27,6 +27,21 @@ function assertSupabaseStorageReady() {
   }
 }
 
+async function getAccessToken() {
+  assertSupabaseStorageReady();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error('No se pudo leer la sesión de Supabase para subir imágenes');
+  }
+
+  const token = data?.session?.access_token;
+  if (!token) {
+    throw new Error('Debes iniciar sesión con una cuenta de Supabase para subir imágenes');
+  }
+
+  return token;
+}
+
 export async function ensureProductsBucket() {
   assertSupabaseStorageReady();
 
@@ -81,6 +96,7 @@ export function buildFinalImagePath(category = '', productSlug = '', index = 1) 
 export async function uploadDraftImage({ blob, draftId, imageId, onProgress }) {
   assertSupabaseStorageReady();
   await ensureProductsBucket();
+  const accessToken = await getAccessToken();
 
   const path = buildDraftImagePath(draftId, imageId);
 
@@ -88,7 +104,7 @@ export async function uploadDraftImage({ blob, draftId, imageId, onProgress }) {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', buildStorageObjectUrl(path));
     xhr.setRequestHeader('apikey', supabaseAnonKey);
-    xhr.setRequestHeader('Authorization', `Bearer ${supabaseAnonKey}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
     xhr.setRequestHeader('x-upsert', 'true');
     xhr.setRequestHeader('cache-control', '31536000');
     xhr.setRequestHeader('content-type', 'image/webp');
