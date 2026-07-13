@@ -27,6 +27,16 @@ export default function ProductImagesUploader({
 
   function handleFiles(files) {
     if (!files?.length) return;
+    const entries = Array.from(files || []).map((file, index) => ({
+      index,
+      name: file?.name || '',
+      type: file?.type || '',
+      size: file?.size || 0,
+    }));
+    console.log('[UPLOAD_DIAG][1] ProductImagesUploader.handleFiles', {
+      count: entries.length,
+      files: entries,
+    });
     onAddFiles(files);
   }
 
@@ -54,6 +64,15 @@ export default function ProductImagesUploader({
           multiple
           className="hidden"
           onChange={(event) => {
+            console.log('[UPLOAD_DIAG][1] ProductImagesUploader.input.onChange', {
+              count: event.target.files?.length || 0,
+              files: Array.from(event.target.files || []).map((file, index) => ({
+                index,
+                name: file?.name || '',
+                type: file?.type || '',
+                size: file?.size || 0,
+              })),
+            });
             handleFiles(event.target.files);
             event.target.value = '';
           }}

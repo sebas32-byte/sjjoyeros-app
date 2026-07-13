@@ -1,4 +1,4 @@
--- Storage setup for SJ Joyeros admin image uploads
+k-- Storage setup for SJ Joyeros admin image uploads
 -- Run this in Supabase SQL Editor with a privileged role.
 
 -- 1) Ensure products bucket exists and is public for catalog images.

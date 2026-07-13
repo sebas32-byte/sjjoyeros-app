@@ -2,6 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { optimizeImageFile } from '../utils/imageProcessor.js';
 import { finalizeDraftImages, removeProductImagePaths, uploadDraftImage } from '../services/productStorage.js';
 
+function serializeError(error) {
+  if (!error) return null;
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  };
+}
+
+function logUploadDiag(scope, payload = {}) {
+  const entry = {
+    ts: new Date().toISOString(),
+    scope,
+    ...payload,
+  };
+  console.log('[UPLOAD_DIAG]', entry);
+  if (typeof window !== 'undefined') {
+    window.__SJ_UPLOAD_DIAG__ = window.__SJ_UPLOAD_DIAG__ || [];
+    window.__SJ_UPLOAD_DIAG__.push(entry);
+  }
+}
+
 function createDraftId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -61,6 +83,12 @@ export function useProductImagesUpload() {
 
   const processAndUpload = useCallback(async (item) => {
     try {
+      logUploadDiag('processAndUpload.start', {
+        id: item.id,
+        fileName: item?.originalFile?.name || '',
+        fileType: item?.originalFile?.type || '',
+        fileSize: item?.originalFile?.size || 0,
+      });
       updateItem(item.id, { status: 'optimizing', progress: 5, error: '' });
 
       const optimized = await optimizeImageFile(item.originalFile, {
@@ -69,6 +97,23 @@ export function useProductImagesUpload() {
         onProgress: (progress) => {
           updateItem(item.id, { status: 'optimizing', progress: Math.min(35, Math.max(5, Math.round(progress * 0.35))) });
         },
+      });
+
+      logUploadDiag('processAndUpload.optimized', {
+        id: item.id,
+        originalFile: {
+          name: item?.originalFile?.name || '',
+          type: item?.originalFile?.type || '',
+          size: item?.originalFile?.size || 0,
+        },
+        optimizedBlob: {
+          type: optimized?.blob?.type || '',
+          size: optimized?.blob?.size || 0,
+          isBlob: optimized?.blob instanceof Blob,
+        },
+        originalSize: optimized?.originalSize || 0,
+        optimizedSize: optimized?.optimizedSize || 0,
+        mimeType: optimized?.blob?.type || '',
       });
 
       updateItem(item.id, { status: 'uploading', progress: 40 });
@@ -83,6 +128,12 @@ export function useProductImagesUpload() {
         },
       });
 
+      logUploadDiag('processAndUpload.uploaded', {
+        id: item.id,
+        draftPath: uploaded?.path || '',
+        url: uploaded?.url || '',
+      });
+
       updateItem(item.id, {
         status: 'uploaded',
         progress: 100,
@@ -93,6 +144,13 @@ export function useProductImagesUpload() {
         originalBytes: optimized.originalSize,
       });
     } catch (error) {
+      console.error(error);
+      console.error(error?.stack);
+      console.error(JSON.stringify(serializeError(error), null, 2));
+      logUploadDiag('processAndUpload.error', {
+        id: item.id,
+        error: serializeError(error),
+      });
       updateItem(item.id, {
         status: 'error',
         progress: 0,
@@ -103,6 +161,16 @@ export function useProductImagesUpload() {
 
   const addFiles = useCallback((fileList) => {
     const files = Array.from(fileList || []).filter((file) => String(file.type || '').startsWith('image/'));
+    logUploadDiag('addFiles.received', {
+      receivedCount: Array.from(fileList || []).length,
+      validImageCount: files.length,
+      files: Array.from(fileList || []).map((file, index) => ({
+        index,
+        name: file?.name || '',
+        type: file?.type || '',
+        size: file?.size || 0,
+      })),
+    });
     if (!files.length) return;
 
     const newItems = files.map((file, index) => ({
@@ -121,8 +189,15 @@ export function useProductImagesUpload() {
       originalBytes: file.size || 0,
     }));
 
+    logUploadDiag('addFiles.createdItems', {
+      ids: newItems.map((item) => item.id),
+      previews: newItems.map((item) => item.previewUrl),
+      fileNames: newItems.map((item) => item.fileName),
+    });
+
     setItems((current) => withPrimaryFirst([...current, ...newItems]));
     newItems.forEach((item) => {
+      logUploadDiag('addFiles.call.processAndUpload', { id: item.id, fileName: item.fileName });
       void processAndUpload(item);
     });
   }, [processAndUpload]);

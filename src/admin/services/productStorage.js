@@ -4,6 +4,29 @@ import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from '..
 
 let ensureBucketPromise = null;
 
+function serializeError(error) {
+  if (!error) return null;
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    status: error.status,
+  };
+}
+
+function logUploadDiag(scope, payload = {}) {
+  const entry = {
+    ts: new Date().toISOString(),
+    scope,
+    ...payload,
+  };
+  console.log('[UPLOAD_DIAG]', entry);
+  if (typeof window !== 'undefined') {
+    window.__SJ_UPLOAD_DIAG__ = window.__SJ_UPLOAD_DIAG__ || [];
+    window.__SJ_UPLOAD_DIAG__.push(entry);
+  }
+}
+
 function encodePath(path = '') {
   return path
     .split('/')
@@ -13,12 +36,16 @@ function encodePath(path = '') {
 
 function buildStorageObjectUrl(path) {
   const encodedPath = encodePath(path);
-  return `${supabaseUrl}/storage/v1/object/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
+  const url = `${supabaseUrl}/storage/v1/object/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
+  logUploadDiag('buildStorageObjectUrl', { path, bucket: PRODUCT_IMAGES_BUCKET, url });
+  return url;
 }
 
 function buildStoragePublicUrl(path) {
   const encodedPath = encodePath(path);
-  return `${supabaseUrl}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
+  const url = `${supabaseUrl}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
+  logUploadDiag('buildStoragePublicUrl', { path, bucket: PRODUCT_IMAGES_BUCKET, url });
+  return url;
 }
 
 function assertSupabaseStorageReady() {
@@ -30,12 +57,23 @@ function assertSupabaseStorageReady() {
 async function getAccessToken() {
   assertSupabaseStorageReady();
   const { data, error } = await supabase.auth.getSession();
+  logUploadDiag('getAccessToken.session', {
+    session: data?.session || null,
+    access_token: data?.session?.access_token || null,
+    expires_at: data?.session?.expires_at || null,
+    userId: data?.session?.user?.id || null,
+    error: serializeError(error),
+  });
   if (error) {
     throw new Error('No se pudo leer la sesión de Supabase para subir imágenes');
   }
 
   const token = data?.session?.access_token;
   if (!token) {
+    logUploadDiag('getAccessToken.noSession', {
+      reason: 'session_null_or_missing_access_token',
+      session: data?.session || null,
+    });
     throw new Error('Debes iniciar sesión con una cuenta de Supabase para subir imágenes');
   }
 
@@ -45,29 +83,10 @@ async function getAccessToken() {
 export async function ensureProductsBucket() {
   assertSupabaseStorageReady();
 
-  if (ensureBucketPromise) return ensureBucketPromise;
-
-  ensureBucketPromise = (async () => {
-    try {
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const exists = Array.isArray(buckets) && buckets.some((bucket) => bucket.name === PRODUCT_IMAGES_BUCKET);
-      if (exists) return;
-
-      const { error } = await supabase.storage.createBucket(PRODUCT_IMAGES_BUCKET, {
-        public: true,
-        fileSizeLimit: 10 * 1024 * 1024,
-        allowedMimeTypes: ['image/webp', 'image/jpeg', 'image/png'],
-      });
-
-      if (error && !String(error.message || '').toLowerCase().includes('already exists')) {
-        throw error;
-      }
-    } catch (error) {
-      const message = String(error?.message || '').toLowerCase();
-      const isPermissionError = message.includes('not authorized') || message.includes('permission') || message.includes('jwt');
-      if (!isPermissionError) throw error;
-    }
-  })();
+  // El bucket se crea por migraciones/SQL; en frontend solo validamos configuración.
+  if (!ensureBucketPromise) {
+    ensureBucketPromise = Promise.resolve(true);
+  }
 
   return ensureBucketPromise;
 }
@@ -96,36 +115,35 @@ export function buildFinalImagePath(category = '', productSlug = '', index = 1) 
 export async function uploadDraftImage({ blob, draftId, imageId, onProgress }) {
   assertSupabaseStorageReady();
   await ensureProductsBucket();
-  const accessToken = await getAccessToken();
 
   const path = buildDraftImagePath(draftId, imageId);
-
-  await new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', buildStorageObjectUrl(path));
-    xhr.setRequestHeader('apikey', supabaseAnonKey);
-    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
-    xhr.setRequestHeader('x-upsert', 'true');
-    xhr.setRequestHeader('cache-control', '31536000');
-    xhr.setRequestHeader('content-type', 'image/webp');
-
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable) return;
-      onProgress?.(event.loaded, event.total);
-    };
-
-    xhr.onerror = () => reject(new Error('No se pudo subir la imagen al almacenamiento'));
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(null);
-        return;
-      }
-      reject(new Error(`Error al subir imagen (${xhr.status})`));
-    };
-
-    xhr.send(blob);
+  logUploadDiag('uploadDraftImage.request', {
+    bucket: PRODUCT_IMAGES_BUCKET,
+    path,
+    method: 'SUPABASE_STORAGE_UPLOAD',
+    body: {
+      type: blob?.type || '',
+      size: blob?.size || 0,
+      isBlob: blob instanceof Blob,
+    },
   });
+
+  const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, blob, {
+    upsert: true,
+    contentType: 'image/webp',
+    cacheControl: '31536000',
+  });
+
+  if (error) {
+    logUploadDiag('uploadDraftImage.upload.error', {
+      bucket: PRODUCT_IMAGES_BUCKET,
+      path,
+      error: serializeError(error),
+    });
+    throw error;
+  }
+
+  onProgress?.(blob?.size || 0, blob?.size || 0);
 
   return {
     path,
@@ -137,6 +155,10 @@ export async function removeProductImagePaths(paths = []) {
   if (!supabase || !paths.length) return;
   const cleanPaths = paths.filter(Boolean);
   if (!cleanPaths.length) return;
+  logUploadDiag('removeProductImagePaths', {
+    bucket: PRODUCT_IMAGES_BUCKET,
+    paths: cleanPaths,
+  });
   await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove(cleanPaths);
 }
 
@@ -168,11 +190,21 @@ export async function finalizeDraftImages({ items, category, productSlug }) {
       }
 
       const finalPath = buildFinalImagePath(category, normalizedProductSlug, index + 1);
+      logUploadDiag('finalizeDraftImages.download', {
+        bucket: PRODUCT_IMAGES_BUCKET,
+        fromPath: item.draftPath,
+      });
       const { data: downloaded, error: downloadError } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).download(item.draftPath);
       if (downloadError || !downloaded) {
         throw downloadError || new Error('No se pudo preparar la imagen para finalizar');
       }
 
+      logUploadDiag('finalizeDraftImages.upload', {
+        bucket: PRODUCT_IMAGES_BUCKET,
+        toPath: finalPath,
+        contentType: 'image/webp',
+        size: downloaded?.size || 0,
+      });
       const { error: uploadError } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(finalPath, downloaded, {
         upsert: true,
         contentType: 'image/webp',
@@ -193,6 +225,10 @@ export async function finalizeDraftImages({ items, category, productSlug }) {
   );
 
   if (draftPathsToRemove.length) {
+    logUploadDiag('finalizeDraftImages.removeDrafts', {
+      bucket: PRODUCT_IMAGES_BUCKET,
+      paths: draftPathsToRemove,
+    });
     await removeProductImagePaths(draftPathsToRemove);
   }
 
