@@ -23,7 +23,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white">
       <header className="border-b border-white/10 bg-black/40">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">

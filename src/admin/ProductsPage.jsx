@@ -12,8 +12,9 @@ import {
   toAvailability,
   toSlug,
 } from './productAutomation.js';
-import ProductImagesUploader from './components/ProductImagesUploader.jsx';
+import ProductPhotoRolesUploader from './components/ProductPhotoRolesUploader.jsx';
 import { useProductImagesUpload } from './hooks/useProductImagesUpload.js';
+import ProductDetailView from '../components/ProductDetailView.jsx';
 import {
   PRODUCT_CATEGORY_OPTIONS,
   PRODUCT_MATERIAL_OPTIONS,
@@ -48,16 +49,13 @@ export default function ProductsPage() {
   const [error, setError] = useState('');
   const {
     images,
-    addFiles,
-    retryImage,
-    setPrimaryImage,
-    moveImage,
-    removeImage,
     resetWithUrls,
     clearAll,
     finalizeForProduct,
     hasPendingUploads,
     hasUploadErrors,
+    setImageAtSlot,
+    removeImageAtSlot,
   } = useProductImagesUpload();
 
   const descriptionTemplateOptions = useMemo(() => getDescriptionTemplateOptions(), []);
@@ -102,6 +100,12 @@ export default function ProductsPage() {
       if (!form.category) throw new Error('Selecciona una categoría');
       if (!form.subcategory) throw new Error('Selecciona una subcategoría');
       if (!form.material) throw new Error('Selecciona un material');
+
+      const heroImage = images.find((item) => item?.slotIndex === 0) || images[0];
+      const hasHero = Boolean(heroImage?.url || heroImage?.previewUrl);
+      if (!hasHero) {
+        throw new Error('Debes cargar la fotografía Hero Shot antes de guardar');
+      }
 
       const slug = toSlug(form.name || form.slug || '');
       const imagePayload = await finalizeForProduct({
@@ -173,6 +177,30 @@ export default function ProductsPage() {
     void clearAll();
   }
 
+  const previewProduct = useMemo(() => {
+    const slottedImages = [...images]
+      .sort((a, b) => {
+        const left = Number.isFinite(a?.slotIndex) ? a.slotIndex : 1000;
+        const right = Number.isFinite(b?.slotIndex) ? b.slotIndex : 1000;
+        return left - right;
+      })
+      .map((item) => item.previewUrl || item.url)
+      .filter(Boolean);
+    return {
+      id: editingId || 'preview',
+      name: form.name || 'Producto SJ Joyeros',
+      family: form.family || form.category || 'Coleccion',
+      category: form.category || 'Categoria',
+      subcategory: form.subcategory || 'Subcategoria',
+      description: form.description || 'La descripcion del producto aparecera aqui para validar presentacion antes de publicar.',
+      price: Number(String(form.price || '').replace(/\D/g, '')) || 0,
+      stock: Number(form.stock || 0),
+      inventory_status: form.inventory_status || 'Disponible',
+      image: slottedImages[0] || '',
+      images: slottedImages,
+    };
+  }, [editingId, form, images]);
+
   async function handleToggleAvailability(product) {
     const nextStatus = product.available !== false ? 'Agotado' : 'Disponible';
     try {
@@ -194,8 +222,8 @@ export default function ProductsPage() {
       </div>
       {error ? <p className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p> : null}
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-[2rem] border border-white/10 bg-white/5 p-6">
-        <div className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-[2rem] border border-white/10 bg-white/5 p-4 sm:p-6">
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
           <p className="text-xs uppercase tracking-[0.28em] text-white/60">Información general</p>
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -253,10 +281,10 @@ export default function ProductsPage() {
               ))}
             </select>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Información comercial</p>
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Inventario y precio</p>
           <div className="grid gap-4 md:grid-cols-2">
             <input
               value={form.price || ''}
@@ -278,10 +306,19 @@ export default function ProductsPage() {
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
-          </div>
-        </div>
 
-        <div className="space-y-3">
+            <input
+              value={form.stock ?? 0}
+              type="number"
+              min="0"
+              onChange={(event) => setForm((current) => ({ ...current, stock: Math.max(0, Number(event.target.value || 0)) }))}
+              placeholder="Stock"
+              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+            />
+          </div>
+        </section>
+
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
           <p className="text-xs uppercase tracking-[0.28em] text-white/60">Especificaciones</p>
           <div className="grid gap-4 md:grid-cols-2">
             <select
@@ -295,10 +332,10 @@ export default function ProductsPage() {
               ))}
             </select>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Contenido</p>
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Descripción</p>
           <div className="grid gap-4 md:grid-cols-2">
             <select
               value={form.description_template || ''}
@@ -319,27 +356,35 @@ export default function ProductsPage() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm text-white/70">Imágenes del producto</label>
-            <ProductImagesUploader
-              images={images}
-              onAddFiles={addFiles}
-              onRemove={removeImage}
-              onSetPrimary={setPrimaryImage}
-              onMove={moveImage}
-              onRetry={retryImage}
-            />
-            {hasPendingUploads ? <p className="text-xs text-white/50">Las imágenes se están subiendo en segundo plano.</p> : null}
-            {hasUploadErrors ? <p className="text-xs text-red-300">Hay imágenes con error. Reintenta o elimínalas antes de guardar.</p> : null}
-          </div>
-
           <textarea
             value={form.description || ''}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
             placeholder="Descripción"
-            className="min-h-[120px] w-full rounded-[1.5rem] border border-white/10 bg-black/40 px-4 py-3"
+            className="min-h-[120px] w-full rounded-[1.2rem] border border-white/10 bg-black/40 px-4 py-3"
           />
-        </div>
+        </section>
+
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Fotografías</p>
+          <ProductPhotoRolesUploader
+            images={images}
+            onSetSlotFile={(file, slotIndex) => setImageAtSlot({ file, slotIndex })}
+            onRemoveSlot={(slotIndex) => removeImageAtSlot(slotIndex)}
+            hasPendingUploads={hasPendingUploads}
+            hasUploadErrors={hasUploadErrors}
+          />
+        </section>
+
+        <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/60">Vista previa</p>
+          <ProductDetailView
+            product={previewProduct}
+            relatedProducts={[]}
+            whatsappUrl="#"
+            mode="preview"
+            className="rounded-[1.2rem] border border-white/10 bg-black/20 p-3"
+          />
+        </section>
 
         <div className="flex flex-wrap gap-3">
           <button type="submit" className="rounded-full bg-gold px-4 py-3 font-semibold text-deep-black">{editingId ? 'Guardar cambios' : 'Crear producto'}</button>

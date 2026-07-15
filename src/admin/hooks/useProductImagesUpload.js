@@ -54,7 +54,21 @@ function normalizeIncomingUrls(urls = []) {
       originalFile: null,
       optimizedBytes: 0,
       originalBytes: 0,
+      slotIndex: index,
     }));
+}
+
+function getSlotOrderValue(item, index) {
+  const slot = Number.isFinite(item?.slotIndex) ? Number(item.slotIndex) : null;
+  if (slot === null) return 1000 + index;
+  return slot;
+}
+
+function orderBySlots(items = []) {
+  return [...items]
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => getSlotOrderValue(a.item, a.index) - getSlotOrderValue(b.item, b.index))
+    .map(({ item }) => item);
 }
 
 function withPrimaryFirst(items = []) {
@@ -142,6 +156,7 @@ export function useProductImagesUpload() {
         url: uploaded.url,
         optimizedBytes: optimized.optimizedSize,
         originalBytes: optimized.originalSize,
+        slotIndex: item.slotIndex ?? null,
       });
     } catch (error) {
       console.error(error);
@@ -159,6 +174,23 @@ export function useProductImagesUpload() {
     }
   }, [draftId, updateItem]);
 
+  const createUploadItem = useCallback((file, indexHint = 0) => ({
+    id: createImageId(),
+    fileName: file.name || `imagen-${indexHint + 1}`,
+    previewUrl: URL.createObjectURL(file),
+    url: '',
+    status: 'queued',
+    progress: 0,
+    isPrimary: false,
+    draftPath: '',
+    path: '',
+    error: '',
+    originalFile: file,
+    optimizedBytes: 0,
+    originalBytes: file.size || 0,
+    slotIndex: null,
+  }), []);
+
   const addFiles = useCallback((fileList) => {
     const files = Array.from(fileList || []).filter((file) => String(file.type || '').startsWith('image/'));
     logUploadDiag('addFiles.received', {
@@ -173,21 +205,7 @@ export function useProductImagesUpload() {
     });
     if (!files.length) return;
 
-    const newItems = files.map((file, index) => ({
-      id: createImageId(),
-      fileName: file.name || `imagen-${index + 1}`,
-      previewUrl: URL.createObjectURL(file),
-      url: '',
-      status: 'queued',
-      progress: 0,
-      isPrimary: false,
-      draftPath: '',
-      path: '',
-      error: '',
-      originalFile: file,
-      optimizedBytes: 0,
-      originalBytes: file.size || 0,
-    }));
+    const newItems = files.map((file, index) => createUploadItem(file, index));
 
     logUploadDiag('addFiles.createdItems', {
       ids: newItems.map((item) => item.id),
@@ -200,7 +218,33 @@ export function useProductImagesUpload() {
       logUploadDiag('addFiles.call.processAndUpload', { id: item.id, fileName: item.fileName });
       void processAndUpload(item);
     });
-  }, [processAndUpload]);
+  }, [createUploadItem, processAndUpload]);
+
+  const setImageAtSlot = useCallback(async ({ file, slotIndex }) => {
+    if (!file || !String(file.type || '').startsWith('image/')) return null;
+    const index = Number.isFinite(slotIndex) ? Math.max(0, Math.floor(slotIndex)) : 0;
+    const current = itemsRef.current || [];
+    const replacing = current.find((item) => item.slotIndex === index) || current[index] || null;
+
+    if (replacing?.previewUrl && replacing.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(replacing.previewUrl);
+    }
+
+    if (replacing?.draftPath) {
+      await removeProductImagePaths([replacing.draftPath]);
+    }
+
+    const newItem = createUploadItem(file, index);
+    newItem.slotIndex = index;
+    setItems((source) => {
+      const filtered = replacing?.id ? source.filter((item) => item.id !== replacing.id) : [...source];
+      const next = orderBySlots([...filtered, newItem]);
+      return next.map((item, idx) => ({ ...item, isPrimary: idx === 0 }));
+    });
+
+    void processAndUpload(newItem);
+    return newItem.id;
+  }, [createUploadItem, processAndUpload]);
 
   const retryImage = useCallback((id) => {
     const target = itemsRef.current.find((item) => item.id === id);
@@ -249,6 +293,15 @@ export function useProductImagesUpload() {
     setItems((current) => withPrimaryFirst(current.filter((item) => item.id !== id).map((item, index) => ({ ...item, isPrimary: index === 0 }))));
   }, []);
 
+  const removeImageAtSlot = useCallback(async (slotIndex) => {
+    const index = Number.isFinite(slotIndex) ? Math.max(0, Math.floor(slotIndex)) : -1;
+    if (index < 0) return;
+    const source = itemsRef.current || [];
+    const target = source.find((item) => item.slotIndex === index) || source[index];
+    if (!target) return;
+    await removeImage(target.id);
+  }, [removeImage]);
+
   const resetWithUrls = useCallback((urls = []) => {
     setItems(normalizeIncomingUrls(urls));
     setDraftId(createDraftId());
@@ -286,7 +339,7 @@ export function useProductImagesUpload() {
 
     const hasDraftImages = currentItems.some((item) => item.draftPath);
     if (!hasDraftImages) {
-      const linkedOnly = currentItems.map((item, index) => ({
+      const linkedOnly = orderBySlots(currentItems).map((item, index) => ({
         ...item,
         status: 'linked',
         progress: 100,
@@ -303,12 +356,12 @@ export function useProductImagesUpload() {
     }
 
     const finalizedItems = await finalizeDraftImages({
-      items: currentItems,
+      items: orderBySlots(currentItems),
       category,
       productSlug,
     });
 
-    const normalized = finalizedItems.map((item, index) => ({
+    const normalized = orderBySlots(finalizedItems).map((item, index) => ({
       ...item,
       status: 'linked',
       progress: 100,
@@ -352,5 +405,7 @@ export function useProductImagesUpload() {
     finalizeForProduct,
     hasPendingUploads,
     hasUploadErrors,
+    setImageAtSlot,
+    removeImageAtSlot,
   };
 }

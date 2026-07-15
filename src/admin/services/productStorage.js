@@ -34,13 +34,6 @@ function encodePath(path = '') {
     .join('/');
 }
 
-function buildStorageObjectUrl(path) {
-  const encodedPath = encodePath(path);
-  const url = `${supabaseUrl}/storage/v1/object/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
-  logUploadDiag('buildStorageObjectUrl', { path, bucket: PRODUCT_IMAGES_BUCKET, url });
-  return url;
-}
-
 function buildStoragePublicUrl(path) {
   const encodedPath = encodePath(path);
   const url = `${supabaseUrl}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
@@ -52,32 +45,6 @@ function assertSupabaseStorageReady() {
   if (!isSupabaseConfigured || !supabase || !supabaseAnonKey || !supabaseUrl) {
     throw new Error('Supabase Storage no está configurado en este entorno');
   }
-}
-
-async function getAccessToken() {
-  assertSupabaseStorageReady();
-  const { data, error } = await supabase.auth.getSession();
-  logUploadDiag('getAccessToken.session', {
-    session: data?.session || null,
-    access_token: data?.session?.access_token || null,
-    expires_at: data?.session?.expires_at || null,
-    userId: data?.session?.user?.id || null,
-    error: serializeError(error),
-  });
-  if (error) {
-    throw new Error('No se pudo leer la sesión de Supabase para subir imágenes');
-  }
-
-  const token = data?.session?.access_token;
-  if (!token) {
-    logUploadDiag('getAccessToken.noSession', {
-      reason: 'session_null_or_missing_access_token',
-      session: data?.session || null,
-    });
-    throw new Error('Debes iniciar sesión con una cuenta de Supabase para subir imágenes');
-  }
-
-  return token;
 }
 
 export async function ensureProductsBucket() {
