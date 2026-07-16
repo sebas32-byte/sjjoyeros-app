@@ -23,7 +23,7 @@ export default function ProductPage({ id }) {
   }
 
   return (
-    <main className="section-shell mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <main className="section-shell mx-auto max-w-7xl px-6 py-16 lg:px-8">
       {loading ? (
         <div className="space-y-6">
           <div className="h-5 w-56 animate-pulse rounded bg-white/10" />

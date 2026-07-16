@@ -36,8 +36,7 @@ const PHOTO_SLOTS = [
 function slotImage(items, index) {
   if (!Array.isArray(items)) return null;
   const explicit = items.find((item) => item?.slotIndex === index);
-  if (explicit) return explicit;
-  return items[index] || null;
+  return explicit || null;
 }
 
 export default function ProductPhotoRolesUploader({
@@ -69,10 +68,10 @@ export default function ProductPhotoRolesUploader({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+      <div className="rounded-2xl border border-gold/20 bg-black/25 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-white">Progreso de fotografias</p>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/60">{loadedCount} de {PHOTO_SLOTS.length} fotografias cargadas</p>
+          <p className="font-display text-2xl leading-[0.95] text-white">Progreso de fotografias</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-gold/80">{loadedCount} de {PHOTO_SLOTS.length} fotografias cargadas</p>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
           <div
@@ -100,7 +99,7 @@ export default function ProductPhotoRolesUploader({
           const isReady = Boolean(image?.url || image?.previewUrl);
 
           return (
-            <article key={slot.key} className="group rounded-[1.4rem] border border-white/10 bg-black/30 p-3.5 transition hover:border-gold/35">
+            <article key={slot.key} className="group rounded-[1.4rem] border border-white/10 bg-black/30 p-3.5 transition hover:border-gold/35 hover:shadow-[0_16px_44px_rgba(0,0,0,0.34)]">
               <input
                 ref={(element) => {
                   inputRefs.current[slot.key] = element;
@@ -116,7 +115,7 @@ export default function ProductPhotoRolesUploader({
 
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-white">{slot.title}</h3>
+                  <h3 className="font-display text-2xl leading-[0.95] text-white">{slot.title}</h3>
                   <p className="mt-1 text-xs text-white/55">{slot.hint}</p>
                 </div>
                 {slot.required ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-gold">Obligatoria</span> : null}
@@ -146,7 +145,7 @@ export default function ProductPhotoRolesUploader({
                 <button
                   type="button"
                   onClick={() => inputRefs.current[slot.key]?.click()}
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/85"
+                  className="luxury-btn-secondary px-3 py-1.5 text-xs"
                 >
                   {isReady ? 'Reemplazar' : 'Cargar'}
                 </button>
@@ -154,7 +153,7 @@ export default function ProductPhotoRolesUploader({
                   type="button"
                   disabled={!isReady}
                   onClick={() => setLightbox({ src, title: slot.title })}
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/85 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="luxury-btn-secondary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Ver grande
                 </button>
@@ -162,7 +161,7 @@ export default function ProductPhotoRolesUploader({
                   type="button"
                   disabled={!isReady}
                   onClick={() => onRemoveSlot?.(index)}
-                  className="rounded-full border border-red-400/40 px-3 py-1.5 text-xs text-red-300 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="luxury-btn-danger px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Eliminar
                 </button>

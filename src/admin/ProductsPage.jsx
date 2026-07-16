@@ -147,10 +147,13 @@ export default function ProductsPage() {
   }
 
   async function handleDelete(id) {
+    const previous = products;
+    setProducts((current) => current.filter((item) => item.id !== id));
     try {
       await deleteProduct(id);
-      await loadProducts();
+      setError('');
     } catch (err) {
+      setProducts(previous);
       setError(err.message || 'No se pudo eliminar el producto');
     }
   }
@@ -217,12 +220,12 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.35em] text-gold">Productos</p>
-        <h1 className="mt-2 text-3xl font-semibold">Administrar catálogo</h1>
+        <p className="luxury-kicker">Productos</p>
+        <h1 className="mt-2 font-display text-5xl leading-[0.95]">Administrar catalogo</h1>
       </div>
       {error ? <p className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p> : null}
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-[2rem] border border-white/10 bg-white/5 p-4 sm:p-6">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-[2rem] border border-white/10 bg-white/5 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.35)] sm:p-6">
         <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
           <p className="text-xs uppercase tracking-[0.28em] text-white/60">Información general</p>
           <div className="grid gap-4 md:grid-cols-2">
@@ -230,14 +233,14 @@ export default function ProductsPage() {
               value={form.name || ''}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
               placeholder="Nombre del producto"
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             />
 
             <select
               value={form.category || ''}
               onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             >
               <option value="">Categoría</option>
@@ -249,7 +252,7 @@ export default function ProductsPage() {
             <select
               value={form.subcategory || ''}
               onChange={(event) => setForm((current) => ({ ...current, subcategory: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             >
               <option value="">Subcategoría</option>
@@ -261,7 +264,7 @@ export default function ProductsPage() {
             <select
               value={form.material || ''}
               onChange={(event) => setForm((current) => ({ ...current, material: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             >
               <option value="">Material</option>
@@ -273,7 +276,7 @@ export default function ProductsPage() {
             <select
               value={form.family || ''}
               onChange={(event) => setForm((current) => ({ ...current, family: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
             >
               <option value="">Colección (opcional)</option>
               {collectionOptions.map((collection) => (
@@ -292,14 +295,14 @@ export default function ProductsPage() {
               inputMode="numeric"
               onChange={handlePriceChange}
               placeholder="Ej: 35.000"
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             />
 
             <select
               value={form.inventory_status || 'Disponible'}
               onChange={(event) => setForm((current) => ({ ...current, inventory_status: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
               required
             >
               {PRODUCT_STATUS_OPTIONS.map((status) => (
@@ -313,7 +316,7 @@ export default function ProductsPage() {
               min="0"
               onChange={(event) => setForm((current) => ({ ...current, stock: Math.max(0, Number(event.target.value || 0)) }))}
               placeholder="Stock"
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
             />
           </div>
         </section>
@@ -324,7 +327,7 @@ export default function ProductsPage() {
             <select
               value={form.bead_size || ''}
               onChange={(event) => setForm((current) => ({ ...current, bead_size: event.target.value }))}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
             >
               <option value="">Número del balín</option>
               {BALIN_OPTIONS.map((value) => (
@@ -347,7 +350,7 @@ export default function ProductsPage() {
                   description: template ? generateDescriptionFromTemplate(template, current.name) : current.description,
                 }));
               }}
-              className="rounded-full border border-white/10 bg-black/40 px-4 py-3"
+              className="luxury-input px-4 py-3"
             >
               <option value="">Plantilla de descripción</option>
               {descriptionTemplateOptions.map((item) => (
@@ -387,14 +390,14 @@ export default function ProductsPage() {
         </section>
 
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className="rounded-full bg-gold px-4 py-3 font-semibold text-deep-black">{editingId ? 'Guardar cambios' : 'Crear producto'}</button>
+          <button type="submit" className="luxury-btn-primary px-5 py-3 font-semibold">{editingId ? 'Guardar cambios' : 'Crear producto'}</button>
           {editingId ? (
-            <button type="button" onClick={handleCancelEdit} className="rounded-full border border-white/10 px-4 py-3 text-sm">Cancelar edición</button>
+            <button type="button" onClick={handleCancelEdit} className="luxury-btn-secondary px-5 py-3 text-sm">Cancelar edicion</button>
           ) : null}
         </div>
       </form>
 
-      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
+      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
         <h2 className="text-xl font-semibold">Listado de productos</h2>
         {loading ? <p className="mt-4 text-sm text-white/60">Cargando…</p> : null}
         <div className="mt-4 space-y-3">
@@ -408,11 +411,11 @@ export default function ProductsPage() {
                 <p className="text-xs text-white/50">{product.reference || product.sku || product.id} · {product.inventory_status || (product.available !== false ? 'Disponible' : 'Agotado')} · Balín: {product.bead_size || 'N/A'}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => handleToggleAvailability(product)} className="rounded-full border border-white/10 px-3 py-2 text-sm">
+                <button onClick={() => handleToggleAvailability(product)} className="luxury-btn-secondary px-3 py-2 text-sm">
                   {product.available !== false ? 'Desactivar' : 'Activar'}
                 </button>
-                <button onClick={() => handleEdit(product)} className="rounded-full border border-white/10 px-3 py-2 text-sm">Editar</button>
-                <button onClick={() => handleDelete(product.id)} className="rounded-full bg-red-500/80 px-3 py-2 text-sm">Eliminar</button>
+                <button onClick={() => handleEdit(product)} className="luxury-btn-secondary px-3 py-2 text-sm">Editar</button>
+                <button onClick={() => handleDelete(product.id)} className="luxury-btn-danger px-3 py-2 text-sm">Eliminar</button>
               </div>
             </div>
           ))}

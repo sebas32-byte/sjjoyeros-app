@@ -24,18 +24,18 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white">
-      <header className="border-b border-white/10 bg-black/40">
+      <header className="border-b border-gold/20 bg-black/40">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-gold">SJJOYEROS</p>
-              <p className="text-lg font-semibold">Panel de administración</p>
+              <p className="luxury-kicker">SJJOYEROS</p>
+              <p className="font-display text-3xl leading-[0.95]">Panel de administracion</p>
             </div>
-            <button onClick={handleLogout} className="shrink-0 rounded-full bg-gold px-4 py-2 text-sm font-semibold text-deep-black">Cerrar sesión</button>
+            <button onClick={handleLogout} className="luxury-btn-primary shrink-0 px-4 py-2 text-sm font-semibold">Cerrar sesion</button>
           </div>
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {navItems.map((item) => (
-              <Link key={item.to} to={item.to} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-2 text-sm text-white/80 transition hover:text-gold">
+              <Link key={item.to} to={item.to} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/80 transition hover:border-gold/30 hover:text-gold-light">
                 {item.label}
               </Link>
             ))}

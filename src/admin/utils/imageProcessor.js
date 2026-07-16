@@ -88,32 +88,6 @@ export async function optimizeImageFile(file, options = {}) {
   const blob = await canvasToWebpBlob(canvas, quality);
   onProgress?.(100);
 
-  const diag = {
-    original: {
-      name: file?.name || '',
-      type: file?.type || '',
-      size: file?.size || 0,
-    },
-    blob: {
-      type: blob?.type || '',
-      size: blob?.size || 0,
-      isBlob: blob instanceof Blob,
-    },
-    dimensions: {
-      width: targetWidth,
-      height: targetHeight,
-    },
-  };
-  console.log('[UPLOAD_DIAG] optimizeImageFile.result', diag);
-  if (typeof window !== 'undefined') {
-    window.__SJ_UPLOAD_DIAG__ = window.__SJ_UPLOAD_DIAG__ || [];
-    window.__SJ_UPLOAD_DIAG__.push({
-      ts: new Date().toISOString(),
-      scope: 'optimizeImageFile.result',
-      ...diag,
-    });
-  }
-
   return {
     blob,
     width: targetWidth,

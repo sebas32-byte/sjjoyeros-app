@@ -36,11 +36,11 @@ export default function CartDrawer({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:items-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-[#0b0b0b] p-6">
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-gold/20 bg-[#0b0b0b] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.48)]">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Carrito</h3>
+          <h3 className="font-display text-3xl leading-[0.95] text-white">Carrito</h3>
           <button onClick={onClose} className="text-white/60">Cerrar</button>
         </div>
         <div className="mt-4 space-y-4">
@@ -69,9 +69,9 @@ export default function CartDrawer({ onClose }) {
                       event.currentTarget.blur();
                     }
                   }}
-                  className="w-16 rounded-md bg-white/5 p-1 text-white"
+                  className="w-16 rounded-md border border-white/10 bg-white/5 p-1 text-white"
                 />
-                <button onClick={() => removeItem(it.id)} className="text-white/60">Eliminar</button>
+                <button onClick={() => removeItem(it.id)} className="luxury-btn-danger px-3 py-1.5 text-xs">Eliminar</button>
               </div>
             </div>
           ))}
@@ -81,8 +81,8 @@ export default function CartDrawer({ onClose }) {
           <p className="font-semibold text-gold">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(total)}</p>
         </div>
         <div className="mt-4 flex gap-3">
-          <a href="/checkout" className="rounded-full bg-gold px-4 py-2 text-deep-black font-semibold">Checkout</a>
-          <button onClick={clear} className="rounded-full border border-white/10 px-4 py-2 text-white">Vaciar</button>
+          <a href="/checkout" className="luxury-btn-primary px-4 py-2 font-semibold">Checkout</a>
+          <button onClick={clear} className="luxury-btn-secondary px-4 py-2">Vaciar</button>
         </div>
       </div>
     </div>

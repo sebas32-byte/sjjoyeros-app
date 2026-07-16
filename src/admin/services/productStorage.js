@@ -4,29 +4,6 @@ import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from '..
 
 let ensureBucketPromise = null;
 
-function serializeError(error) {
-  if (!error) return null;
-  return {
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
-    status: error.status,
-  };
-}
-
-function logUploadDiag(scope, payload = {}) {
-  const entry = {
-    ts: new Date().toISOString(),
-    scope,
-    ...payload,
-  };
-  console.log('[UPLOAD_DIAG]', entry);
-  if (typeof window !== 'undefined') {
-    window.__SJ_UPLOAD_DIAG__ = window.__SJ_UPLOAD_DIAG__ || [];
-    window.__SJ_UPLOAD_DIAG__.push(entry);
-  }
-}
-
 function encodePath(path = '') {
   return path
     .split('/')
@@ -36,9 +13,7 @@ function encodePath(path = '') {
 
 function buildStoragePublicUrl(path) {
   const encodedPath = encodePath(path);
-  const url = `${supabaseUrl}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
-  logUploadDiag('buildStoragePublicUrl', { path, bucket: PRODUCT_IMAGES_BUCKET, url });
-  return url;
+  return `${supabaseUrl}/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/${encodedPath}`;
 }
 
 function assertSupabaseStorageReady() {
@@ -84,16 +59,6 @@ export async function uploadDraftImage({ blob, draftId, imageId, onProgress }) {
   await ensureProductsBucket();
 
   const path = buildDraftImagePath(draftId, imageId);
-  logUploadDiag('uploadDraftImage.request', {
-    bucket: PRODUCT_IMAGES_BUCKET,
-    path,
-    method: 'SUPABASE_STORAGE_UPLOAD',
-    body: {
-      type: blob?.type || '',
-      size: blob?.size || 0,
-      isBlob: blob instanceof Blob,
-    },
-  });
 
   const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, blob, {
     upsert: true,
@@ -102,11 +67,6 @@ export async function uploadDraftImage({ blob, draftId, imageId, onProgress }) {
   });
 
   if (error) {
-    logUploadDiag('uploadDraftImage.upload.error', {
-      bucket: PRODUCT_IMAGES_BUCKET,
-      path,
-      error: serializeError(error),
-    });
     throw error;
   }
 
@@ -122,10 +82,6 @@ export async function removeProductImagePaths(paths = []) {
   if (!supabase || !paths.length) return;
   const cleanPaths = paths.filter(Boolean);
   if (!cleanPaths.length) return;
-  logUploadDiag('removeProductImagePaths', {
-    bucket: PRODUCT_IMAGES_BUCKET,
-    paths: cleanPaths,
-  });
   await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove(cleanPaths);
 }
 
@@ -157,21 +113,11 @@ export async function finalizeDraftImages({ items, category, productSlug }) {
       }
 
       const finalPath = buildFinalImagePath(category, normalizedProductSlug, index + 1);
-      logUploadDiag('finalizeDraftImages.download', {
-        bucket: PRODUCT_IMAGES_BUCKET,
-        fromPath: item.draftPath,
-      });
       const { data: downloaded, error: downloadError } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).download(item.draftPath);
       if (downloadError || !downloaded) {
         throw downloadError || new Error('No se pudo preparar la imagen para finalizar');
       }
 
-      logUploadDiag('finalizeDraftImages.upload', {
-        bucket: PRODUCT_IMAGES_BUCKET,
-        toPath: finalPath,
-        contentType: 'image/webp',
-        size: downloaded?.size || 0,
-      });
       const { error: uploadError } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(finalPath, downloaded, {
         upsert: true,
         contentType: 'image/webp',
@@ -192,10 +138,6 @@ export async function finalizeDraftImages({ items, category, productSlug }) {
   );
 
   if (draftPathsToRemove.length) {
-    logUploadDiag('finalizeDraftImages.removeDrafts', {
-      bucket: PRODUCT_IMAGES_BUCKET,
-      paths: draftPathsToRemove,
-    });
     await removeProductImagePaths(draftPathsToRemove);
   }
 
