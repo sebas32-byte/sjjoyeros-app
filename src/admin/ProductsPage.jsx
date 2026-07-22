@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createProduct, deleteProduct, listProducts, updateProduct } from './api.ts';
 import {
   BALIN_OPTIONS,
@@ -45,8 +45,10 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyProduct);
   const [editingId, setEditingId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const submitLockRef = useRef(false);
   const {
     images,
     resetWithUrls,
@@ -91,6 +93,9 @@ export default function ProductsPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     try {
       const priceValue = Number(String(form.price || '').replace(/\D/g, ''));
       if (!priceValue || priceValue <= 0) {
@@ -143,6 +148,9 @@ export default function ProductsPage() {
       await loadProducts();
     } catch (err) {
       setError(err.message || 'No se pudo guardar el producto');
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -390,7 +398,7 @@ export default function ProductsPage() {
         </section>
 
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className="luxury-btn-primary px-5 py-3 font-semibold">{editingId ? 'Guardar cambios' : 'Crear producto'}</button>
+          <button type="submit" disabled={isSubmitting || hasPendingUploads} className="luxury-btn-primary px-5 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-60">{editingId ? 'Guardar cambios' : 'Crear producto'}</button>
           {editingId ? (
             <button type="button" onClick={handleCancelEdit} className="luxury-btn-secondary px-5 py-3 text-sm">Cancelar edicion</button>
           ) : null}
