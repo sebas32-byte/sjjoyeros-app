@@ -15,10 +15,11 @@ import {
 } from './dataStore.ts';
 
 function isSupabaseReady() {
-  return Boolean(supabase);
+  return Boolean(supabase) && !forceLocalFallback;
 }
 
 const SUPABASE_TIMEOUT_MS = 4000;
+let forceLocalFallback = false;
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs = SUPABASE_TIMEOUT_MS) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -52,12 +53,17 @@ async function withSupabase<T>(operation: () => Promise<T>, fallback: () => Prom
   } catch (error) {
     const status = Number((error as any)?.status || 0);
     const message = String((error as any)?.message || '').toLowerCase();
-    const isSchemaError = message.includes('schema cache') || message.includes('column');
+    const isSchemaError = message.includes('schema cache') || message.includes('column') || message.includes('could not find the table');
     const isPermissionError = status === 401 || status === 403 || message.includes('row-level security') || message.includes('permission denied') || message.includes('not authenticated') || message.includes('jwt');
     const isValidationError = status === 400 || status === 422;
+    const isMissingResource = status === 404;
 
-    if (isSchemaError || isPermissionError || isValidationError) {
+    if (isValidationError) {
       throw error;
+    }
+
+    if (isSchemaError || isPermissionError || isMissingResource) {
+      forceLocalFallback = true;
     }
 
     console.warn('Supabase no disponible, usando respaldo local:', error);

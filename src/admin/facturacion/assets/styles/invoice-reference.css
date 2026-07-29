@@ -1,0 +1,156 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap");
+
+:root {
+  --black: #0b0b0b;
+  --gold: #c5a059;
+  --warm-white: #faf8f5;
+}
+
+.facturacion-page {
+  font-family: "DM Sans", sans-serif;
+  background: #e5e0d8;
+  min-height: 100vh;
+}
+
+.font-luxury {
+  font-family: "Cormorant Garamond", serif;
+}
+
+.bg-lux-black {
+  background: var(--black);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.border-gold {
+  border-color: var(--gold);
+}
+
+.invoice-outer-border {
+  border: 3px solid var(--gold);
+  position: relative;
+  background: var(--warm-white);
+  overflow: hidden;
+}
+
+.invoice-page {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.table-head {
+  background: var(--black);
+}
+
+.canva-button,
+.canva-tag,
+.badge-pending,
+.badge-paid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.table-head th,
+tbody td {
+  vertical-align: middle;
+}
+
+.badge-pending {
+  background: #f4efe6;
+  color: #b59349;
+  border: 1px solid rgba(181, 147, 73, 0.4);
+}
+
+.badge-paid {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.modal-overlay {
+  background: rgba(11, 11, 11, 0.95);
+}
+
+.signature-canvas {
+  touch-action: none;
+}
+
+.folded-corner-container {
+  position: relative;
+}
+
+.folded-corner-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 48px 48px 0;
+  border-color: transparent #e5e0d8 transparent transparent;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.folded-corner-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  border-left: 2.5px solid var(--gold);
+  border-bottom: 2.5px solid var(--gold);
+  pointer-events: none;
+  z-index: 11;
+}
+
+.section-title {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 400;
+  font-size: 11.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  line-height: 1;
+}
+
+/* html2canvas compatibility: avoid unsupported oklch color tokens from host utilities. */
+.facturacion-page .bg-white {
+  background-color: #ffffff !important;
+}
+
+.facturacion-page .text-white {
+  color: #ffffff !important;
+}
+
+.facturacion-page .text-gray-900 {
+  color: #111827 !important;
+}
+
+.facturacion-page .text-gray-800 {
+  color: #1f2937 !important;
+}
+
+.facturacion-page .text-gray-700 {
+  color: #374151 !important;
+}
+
+.facturacion-page .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.facturacion-page .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.facturacion-page .border-gray-400 {
+  border-color: rgba(107, 114, 128, 0.8) !important;
+}

@@ -5,6 +5,7 @@ const cards = [
   { to: '/admin/products', title: 'Productos', description: 'Crear, editar y administrar piezas.' },
   { to: '/admin/categories', title: 'Categorías', description: 'Organizar familias y subcategorías.' },
   { to: '/admin/orders', title: 'Pedidos', description: 'Revisar y actualizar estados.' },
+  { to: '/admin/facturacion', title: 'Facturación', description: 'Gestionar facturas, crédito y pagos.' },
   { to: '/admin/settings', title: 'Configuración', description: 'Ajustes básicos del panel.' },
 ];
 

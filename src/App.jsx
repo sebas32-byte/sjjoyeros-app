@@ -17,6 +17,7 @@ import ProductsPage from './admin/ProductsPage.jsx';
 import CategoriesPage from './admin/CategoriesPage.jsx';
 import OrdersPage from './admin/OrdersPage.jsx';
 import SettingsPage from './admin/SettingsPage.jsx';
+import FacturacionAdminPage from './admin/facturacion/pages/FacturacionAdminPage';
 
 function PublicApp() {
   const { products, loading } = useProducts();
@@ -75,6 +76,7 @@ function AdminApp() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="facturacion" element={<FacturacionAdminPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
