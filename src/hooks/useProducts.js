@@ -5,6 +5,7 @@ import { findCatalogProduct, getRelatedCatalogProducts, normalizeCatalogProducts
 
 const fallbackProducts = normalizeCatalogProducts(productCatalog);
 let catalogCache = fallbackProducts;
+const CATALOG_STORAGE_KEY = 'sjjoyeros_admin_products';
 
 function updateCatalogCache(products) {
   catalogCache = normalizeCatalogProducts(products && products.length ? products : fallbackProducts);
@@ -40,7 +41,11 @@ export function useProducts() {
       }
     }
 
-    const handleCatalogChange = () => {
+    const handleCatalogChange = (event) => {
+      if (event?.type === 'storage') {
+        // Ignore unrelated localStorage changes (e.g. cart updates).
+        if (event.key && event.key !== CATALOG_STORAGE_KEY) return;
+      }
       void loadProducts();
     };
 
@@ -71,35 +76,51 @@ export function useProduct(id) {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadProduct() {
+    async function loadProduct(forceRefresh = false) {
+      const cachedProduct = findCatalogProduct(catalogCache, id) || null;
+      if (!forceRefresh && cachedProduct) {
+        if (!isMounted) return;
+        setProduct(cachedProduct);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const data = await refreshCatalogProducts();
         if (!isMounted) return;
-        const nextProduct = findCatalogProduct(data, id) || findCatalogProduct(catalogCache, id) || null;
+        const nextProduct = findCatalogProduct(data, id) || cachedProduct || null;
         setProduct(nextProduct);
         setError(null);
       } catch (err) {
         if (!isMounted) return;
         console.warn('No se pudo cargar el producto para el storefront:', err);
-        setProduct(findCatalogProduct(catalogCache, id) || null);
+        setProduct(cachedProduct || null);
         setError(err.message || 'No se pudo cargar el producto');
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
+    const handleCatalogChange = (event) => {
+      if (event?.type === 'storage') {
+        if (event.key && event.key !== CATALOG_STORAGE_KEY) return;
+      }
+      void loadProduct(true);
+    };
+
     if (typeof window !== 'undefined') {
-      window.addEventListener('sjjoyeros-catalog-updated', loadProduct);
-      window.addEventListener('storage', loadProduct);
+      window.addEventListener('sjjoyeros-catalog-updated', handleCatalogChange);
+      window.addEventListener('storage', handleCatalogChange);
     }
 
-    void loadProduct();
+    void loadProduct(false);
 
     return () => {
       isMounted = false;
       if (typeof window !== 'undefined') {
-        window.removeEventListener('sjjoyeros-catalog-updated', loadProduct);
-        window.removeEventListener('storage', loadProduct);
+        window.removeEventListener('sjjoyeros-catalog-updated', handleCatalogChange);
+        window.removeEventListener('storage', handleCatalogChange);
       }
     };
   }, [id]);

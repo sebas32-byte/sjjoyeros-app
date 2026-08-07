@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FacturaCanvaTemplate } from "../components/FacturaCanvaTemplate";
+import { PrintInvoice } from "../components/PrintInvoice";
 import { PanelVentaRapida } from "../components/form/PanelVentaRapida";
 import { IssuedInvoicesModule } from "../components/issued/IssuedInvoicesModule";
 import { facturaInicial } from "../data/factura.initial";
@@ -16,6 +16,7 @@ export default function FacturacionAdminPage() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGuardada, setIsGuardada] = useState(false);
   const [previewFactura, setPreviewFactura] = useState(facturaInicial);
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const handleGuardar = () => {
@@ -23,19 +24,22 @@ export default function FacturacionAdminPage() {
   };
 
   const downloadPdfForFactura = async (invoice: Factura) => {
-    setPreviewFactura(invoice);
+    if (isGeneratingPdf) {
+      return;
+    }
 
-    await Promise.race([
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      }),
-      new Promise<void>((resolve) => {
-        window.setTimeout(() => resolve(), 250);
-      }),
-    ]);
+    setIsGeneratingPdf(true);
+    setPreviewFactura(invoice);
+    setIsPrintPreviewOpen(true);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
 
     const rootElement = previewRef.current;
     if (!rootElement) {
+      setIsPrintPreviewOpen(false);
+      setIsGeneratingPdf(false);
       return;
     }
 
@@ -44,13 +48,13 @@ export default function FacturacionAdminPage() {
       rootElement.querySelector<HTMLElement>(".invoice-page") ??
       rootElement;
 
-    setIsGeneratingPdf(true);
     try {
       await generateFacturaPdf({
         element: templateElement,
         fileName: `${invoice.cabecera.numeroFactura || "factura"}.pdf`,
       });
     } finally {
+      setIsPrintPreviewOpen(false);
       setIsGeneratingPdf(false);
     }
   };
@@ -127,11 +131,13 @@ export default function FacturacionAdminPage() {
         )}
       </div>
 
-      <div className="fixed -left-[10000px] top-0 pointer-events-none w-[800px]" aria-hidden="true">
-        <div ref={previewRef} className="w-[800px]">
-          <FacturaCanvaTemplate factura={previewFactura} />
+      {isPrintPreviewOpen ? (
+        <div className="print-invoice-host" aria-hidden="true">
+          <div ref={previewRef} className="print-invoice-frame">
+            <PrintInvoice factura={previewFactura} />
+          </div>
         </div>
-      </div>
+      ) : null}
     </main>
   );
 }

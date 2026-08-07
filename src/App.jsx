@@ -17,7 +17,8 @@ import ProductsPage from './admin/ProductsPage.jsx';
 import CategoriesPage from './admin/CategoriesPage.jsx';
 import OrdersPage from './admin/OrdersPage.jsx';
 import SettingsPage from './admin/SettingsPage.jsx';
-import FacturacionAdminPage from './admin/facturacion/pages/FacturacionAdminPage';
+
+const FacturacionAdminPage = React.lazy(() => import('./admin/facturacion/pages/FacturacionAdminPage'));
 
 function PublicApp() {
   const { products, loading } = useProducts();
@@ -76,7 +77,14 @@ function AdminApp() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="orders" element={<OrdersPage />} />
-          <Route path="facturacion" element={<FacturacionAdminPage />} />
+          <Route
+            path="facturacion"
+            element={(
+              <React.Suspense fallback={<div className="min-h-[240px] rounded-2xl border border-white/10 bg-white/5 p-6 text-white/80">Cargando facturación...</div>}>
+                <FacturacionAdminPage />
+              </React.Suspense>
+            )}
+          />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>

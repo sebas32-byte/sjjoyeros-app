@@ -154,3 +154,16 @@ tbody td {
 .facturacion-page .border-gray-400 {
   border-color: rgba(107, 114, 128, 0.8) !important;
 }
+
+.print-invoice-host {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 800px;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+.print-invoice-frame {
+  width: 800px;
+}
