@@ -5,6 +5,7 @@ import { createIcons, icons } from "lucide";
 interface GenerateFacturaPdfOptions {
   element: HTMLElement;
   fileName?: string;
+  delivery?: "save" | "blob";
 }
 
 async function waitForTwoAnimationFrames(): Promise<void> {
@@ -47,7 +48,8 @@ async function waitForImagesLoaded(element: HTMLElement): Promise<void> {
 export async function generateFacturaPdf({
   element,
   fileName = "factura-sj-joyeros.pdf",
-}: GenerateFacturaPdfOptions): Promise<void> {
+  delivery = "save",
+}: GenerateFacturaPdfOptions): Promise<void | Blob> {
   const previousInlineWidth = element.style.width;
   const previousInlineMaxWidth = element.style.maxWidth;
   const previousInlineMargin = element.style.margin;
@@ -196,6 +198,11 @@ export async function generateFacturaPdf({
     const x = (pageWidth - renderWidth) / 2;
     const y = (pageHeight - renderHeight) / 2;
     pdf.addImage(imageData, "JPEG", x, y, renderWidth, renderHeight, undefined, "MEDIUM");
+
+    if (delivery === "blob") {
+      return pdf.output("blob");
+    }
+
     pdf.save(fileName);
   } finally {
     if (paymentModal) {

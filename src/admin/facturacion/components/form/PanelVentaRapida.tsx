@@ -6,6 +6,9 @@ interface PanelVentaRapidaProps {
   setFactura: Dispatch<SetStateAction<Factura>>;
   onGuardar: () => void;
   onDescargarPdf: () => void;
+  onGuardarPdfMovil?: () => void;
+  onCompartirPdfMovil?: () => void;
+  isMobilePdfActions?: boolean;
   onIssueInvoice?: (issuedFactura: Factura) => Promise<void> | void;
   isGeneratingPdf: boolean;
   isGuardada: boolean;
@@ -483,6 +486,9 @@ export function PanelVentaRapida({
   setFactura,
   onGuardar,
   onDescargarPdf,
+  onGuardarPdfMovil,
+  onCompartirPdfMovil,
+  isMobilePdfActions = false,
   onIssueInvoice,
   isGeneratingPdf,
   isGuardada,
@@ -1368,9 +1374,30 @@ export function PanelVentaRapida({
           <button type="button" onClick={handleGenerateInvoice} disabled={isIssued} className="h-14 rounded-2xl border border-slate-700 bg-[#111111] text-sm font-semibold uppercase tracking-[0.18em] text-slate-100 transition hover:border-[#c5a059] disabled:cursor-not-allowed disabled:opacity-50">
             {isIssued ? "Factura emitida" : "Emitir factura"}
           </button>
-          <button type="button" onClick={onDescargarPdf} disabled={isGeneratingPdf} className="h-14 rounded-2xl bg-[#c5a059] text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:opacity-60">
-            {isGeneratingPdf ? "Generando PDF..." : "Descargar PDF"}
-          </button>
+          {isMobilePdfActions ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onGuardarPdfMovil}
+                disabled={isGeneratingPdf}
+                className="h-14 rounded-2xl bg-[#c5a059] text-sm font-semibold uppercase tracking-[0.16em] text-black transition disabled:opacity-60"
+              >
+                {isGeneratingPdf ? "Generando..." : "Guardar PDF"}
+              </button>
+              <button
+                type="button"
+                onClick={onCompartirPdfMovil}
+                disabled={isGeneratingPdf}
+                className="h-14 rounded-2xl border border-[#c5a059] bg-transparent text-sm font-semibold uppercase tracking-[0.16em] text-[#e3c57f] transition disabled:opacity-60"
+              >
+                {isGeneratingPdf ? "Generando..." : "Compartir PDF"}
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={onDescargarPdf} disabled={isGeneratingPdf} className="h-14 rounded-2xl bg-[#c5a059] text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:opacity-60">
+              {isGeneratingPdf ? "Generando PDF..." : "Descargar PDF"}
+            </button>
+          )}
         </div>
         {!isIssued && !canIssue ? <p className="text-sm text-amber-300">Para emitir y bloquear la factura debes capturar firma inicial de cliente y SJ Joyeros.</p> : null}
         {isIssued ? <p className="text-sm text-emerald-400">Factura bloqueada en estado ISSUED. Solo se permiten pagos y exportación.</p> : null}

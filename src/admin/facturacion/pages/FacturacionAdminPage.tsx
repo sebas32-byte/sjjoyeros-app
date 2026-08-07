@@ -19,11 +19,44 @@ export default function FacturacionAdminPage() {
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  const isMobileBrowser =
+    typeof navigator !== "undefined" &&
+    (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
+  const getFacturaFileName = (invoice: Factura) => `${invoice.cabecera.numeroFactura || "factura"}.pdf`;
+
+  const deliverBlobAsDownload = (blob: Blob, fileName: string) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const isIOS =
+      /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      const opened = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        window.location.href = blobUrl;
+      }
+    } else {
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = fileName;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    }
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 60000);
+  };
+
   const handleGuardar = () => {
     setIsGuardada(true);
   };
 
-  const downloadPdfForFactura = async (invoice: Factura) => {
+  const generatePdfForFactura = async (invoice: Factura, delivery: "save" | "blob") => {
     if (isGeneratingPdf) {
       return;
     }
@@ -49,14 +82,51 @@ export default function FacturacionAdminPage() {
       rootElement;
 
     try {
-      await generateFacturaPdf({
+      return await generateFacturaPdf({
         element: templateElement,
-        fileName: `${invoice.cabecera.numeroFactura || "factura"}.pdf`,
+        fileName: getFacturaFileName(invoice),
+        delivery,
       });
     } finally {
       setIsPrintPreviewOpen(false);
       setIsGeneratingPdf(false);
     }
+  };
+
+  const downloadPdfForFactura = async (invoice: Factura) => {
+    await generatePdfForFactura(invoice, "save");
+  };
+
+  const savePdfForFacturaMobile = async (invoice: Factura) => {
+    const result = await generatePdfForFactura(invoice, "blob");
+    if (!(result instanceof Blob)) return;
+    deliverBlobAsDownload(result, getFacturaFileName(invoice));
+  };
+
+  const sharePdfForFacturaMobile = async (invoice: Factura) => {
+    const result = await generatePdfForFactura(invoice, "blob");
+    if (!(result instanceof Blob)) return;
+
+    const fileName = getFacturaFileName(invoice);
+    const file = new File([result], fileName, { type: "application/pdf" });
+
+    if (typeof navigator !== "undefined" && "share" in navigator && "canShare" in navigator) {
+      try {
+        const canShareFiles = navigator.canShare({ files: [file] });
+        if (canShareFiles) {
+          await navigator.share({
+            title: fileName,
+            text: "Factura PDF",
+            files: [file],
+          });
+          return;
+        }
+      } catch {
+        // Falls back to download/open when native share is unavailable or canceled.
+      }
+    }
+
+    deliverBlobAsDownload(result, fileName);
   };
 
   const handleDownloadPdf = async () => {
@@ -122,12 +192,23 @@ export default function FacturacionAdminPage() {
             setFactura={setFactura}
             onGuardar={handleGuardar}
             onDescargarPdf={handleDownloadPdf}
+            onGuardarPdfMovil={() => savePdfForFacturaMobile(factura)}
+            onCompartirPdfMovil={() => sharePdfForFacturaMobile(factura)}
+            isMobilePdfActions={isMobileBrowser}
             onIssueInvoice={handleIssueInvoice}
             isGeneratingPdf={isGeneratingPdf}
             isGuardada={isGuardada}
           />
         ) : (
-          <IssuedInvoicesModule invoices={issuedInvoices} onUpdateInvoice={handleUpdateIssuedInvoice} onDownloadPdf={downloadPdfForFactura} />
+          <IssuedInvoicesModule
+            invoices={issuedInvoices}
+            onUpdateInvoice={handleUpdateIssuedInvoice}
+            onDownloadPdf={downloadPdfForFactura}
+            onSavePdfMobile={savePdfForFacturaMobile}
+            onSharePdfMobile={sharePdfForFacturaMobile}
+            isMobilePdfActions={isMobileBrowser}
+            isGeneratingPdf={isGeneratingPdf}
+          />
         )}
       </div>
 

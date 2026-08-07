@@ -6,6 +6,10 @@ interface IssuedInvoicesModuleProps {
   invoices: IssuedInvoiceRecord[];
   onUpdateInvoice: (recordId: string, factura: Factura) => void;
   onDownloadPdf: (factura: Factura) => Promise<void> | void;
+  onSavePdfMobile?: (factura: Factura) => Promise<void> | void;
+  onSharePdfMobile?: (factura: Factura) => Promise<void> | void;
+  isMobilePdfActions?: boolean;
+  isGeneratingPdf?: boolean;
 }
 
 type PaymentMethod = "Cash" | "Bank Transfer" | "Nequi" | "Daviplata" | "Other";
@@ -236,7 +240,16 @@ function recalcAfterPayment(factura: Factura, amountPaid: number, planItemIndex:
   };
 }
 
-export function IssuedInvoicesModule({ invoices, onUpdateInvoice, onDownloadPdf }: IssuedInvoicesModuleProps) {
+export function IssuedInvoicesModule({
+  invoices,
+  onUpdateInvoice,
+  onDownloadPdf,
+  onSavePdfMobile,
+  onSharePdfMobile,
+  isMobilePdfActions = false,
+  isGeneratingPdf = false,
+}: IssuedInvoicesModuleProps) {
+  const downloadLockRef = useRef(false);
   const [search, setSearch] = useState("");
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [paymentModal, setPaymentModal] = useState<{ recordId: string; itemIndex: number } | null>(null);
@@ -393,9 +406,59 @@ export function IssuedInvoicesModule({ invoices, onUpdateInvoice, onDownloadPdf 
                             >
                               Registrar pago
                             </button>
-                            <button type="button" onClick={() => onDownloadPdf(factura)} className="h-10 rounded-xl bg-[#c5a059] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-black">
-                              Descargar PDF actualizado
-                            </button>
+                            {isMobilePdfActions ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (isGeneratingPdf || downloadLockRef.current) return;
+                                    downloadLockRef.current = true;
+                                    try {
+                                      await onSavePdfMobile?.(factura);
+                                    } finally {
+                                      downloadLockRef.current = false;
+                                    }
+                                  }}
+                                  disabled={isGeneratingPdf}
+                                  className="h-10 rounded-xl bg-[#c5a059] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-black disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isGeneratingPdf ? "Generando..." : "Guardar PDF"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (isGeneratingPdf || downloadLockRef.current) return;
+                                    downloadLockRef.current = true;
+                                    try {
+                                      await onSharePdfMobile?.(factura);
+                                    } finally {
+                                      downloadLockRef.current = false;
+                                    }
+                                  }}
+                                  disabled={isGeneratingPdf}
+                                  className="h-10 rounded-xl border border-[#c5a059]/50 bg-transparent px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#e3c57f] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isGeneratingPdf ? "Generando..." : "Compartir PDF"}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (isGeneratingPdf || downloadLockRef.current) return;
+                                  downloadLockRef.current = true;
+                                  try {
+                                    await onDownloadPdf(factura);
+                                  } finally {
+                                    downloadLockRef.current = false;
+                                  }
+                                }}
+                                disabled={isGeneratingPdf}
+                                className="h-10 rounded-xl bg-[#c5a059] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-black disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isGeneratingPdf ? "Generando PDF..." : "Descargar PDF actualizado"}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
